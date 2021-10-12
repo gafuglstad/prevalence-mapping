@@ -41,6 +41,8 @@ analyze the 2018 Nigeria Demographic and Health Survey.
         <li> Population (all age, all sex) 2018: https://data.worldpop.org/GIS/Population/Global_2000_2020/2018/NGA/nga_ppp_2018_UNadj.tif</li>
         <li> Population (1&ndash;4 years, female): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_f_1_2018.tif</li>
         <li> Population (1&ndash;4 years, male): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_m_1_2018.tif</li>
+        <li> Population (1&ndash;4 years, female): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2006/NGA/nga_f_1_2006.tif</li>
+        <li> Population (1&ndash;4 years, male): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2006/NGA/nga_m_1_2006.tif</li>
         <li> License: https://creativecommons.org/licenses/by/4.0/</li>
         <li> Population rasters are automatically downloaded when running "Nigeria-Vac/Code/CaseStudy_Nigeria.R"</li>
     </ul>

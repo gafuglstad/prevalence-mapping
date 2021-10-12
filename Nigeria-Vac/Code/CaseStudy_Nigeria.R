@@ -34,6 +34,16 @@
                   destfile = "../Data/Nigeria_pop/nga_m_1_2018.tif")
   }
   options(timeout=60*10)
+  if(!file.exists("../Data/Nigeria_pop/nga_f_1_2006.tif")){
+    download.file(url = "https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2006/NGA/nga_f_1_2006.tif",
+                  destfile = "../Data/Nigeria_pop/nga_f_1_2006.tif")
+  }
+  options(timeout=60*10)
+  if(!file.exists("../Data/Nigeria_pop/nga_m_1_2006.tif")){
+    download.file(url = "https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2006/NGA/nga_m_1_2006.tif",
+                  destfile = "../Data/Nigeria_pop/nga_m_1_2006.tif")
+  }
+  options(timeout=60*10)
   if(!file.exists("../Data/Nigeria_pop/nga_ppp_2017_UNadj.tif")){
     download.file(url = "https://data.worldpop.org/GIS/Population/Global_2000_2020/2017/NGA/nga_ppp_2017_UNadj.tif",
                   destfile = "../Data/Nigeria_pop/nga_ppp_2017_UNadj.tif")
