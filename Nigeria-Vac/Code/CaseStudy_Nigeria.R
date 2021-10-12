@@ -38,6 +38,10 @@
     download.file(url = "https://data.worldpop.org/GIS/Population/Global_2000_2020/2017/NGA/nga_ppp_2017_UNadj.tif",
                   destfile = "../Data/Nigeria_pop/nga_ppp_2017_UNadj.tif")
   }
+  if(!file.exists("../Data/Nigeria_pop/nga_ppp_2018_UNadj.tif")){
+    download.file(url = "https://data.worldpop.org/GIS/Population/Global_2000_2020/2018/NGA/nga_ppp_2018_UNadj.tif",
+                  destfile = "../Data/Nigeria_pop/nga_ppp_2018_UNadj.tif")
+  }
   
 ## Download GADM
   if(!file.exists("../Data/gadm36_NGA_shp.zip")){

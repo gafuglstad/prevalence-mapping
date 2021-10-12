@@ -38,6 +38,7 @@ analyze the 2018 Nigeria Demographic and Health Survey.
     <ul>
         <li> Poverty map for 2010 ($2 a day limit): https://www.worldpop.org/geodata/summary?id=1267</li>
         <li> Population (all age, all sex) 2017: https://data.worldpop.org/GIS/Population/Global_2000_2020/2017/NGA/nga_ppp_2017_UNadj.tif</li>
+        <li> Population (all age, all sex) 2018: https://data.worldpop.org/GIS/Population/Global_2000_2020/2018/NGA/nga_ppp_2018_UNadj.tif</li>
         <li> Population (1&ndash;4 years, female): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_f_1_2018.tif</li>
         <li> Population (1&ndash;4 years, male): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_m_1_2018.tif</li>
         <li> License: https://creativecommons.org/licenses/by/4.0/</li>
