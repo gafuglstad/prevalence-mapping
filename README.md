@@ -1,47 +1,65 @@
 # prevalence-mapping
-Case study Nigeria:
 
-Description: Estimate vaccination coverage of MCV1 for admin1 and admin2 areas.
+<h1>Code for "The Two Cultures for Prevalence Mapping: Small Area Estimation and Spatial Statistics"</h1>
 
-Code files:
-    Nigeria-Vac/Code/CaseStudy_Nigeria.R:
-        Main script. Runs all models and validation and creates figures and data for tables.
-    Nigeria-Vac/Code/functions.R:
-        Support code. Provides functions for fitting models and for aggregation.
+<h2> Description </h2>
+The paper concerns spatial and spatio-temporal estimation of prevalences in administrative areas. This repository contains
+the code for two case studies: spatial estimation of vaccination coverage in Nigeria in 2018, and spatio-temporal estimation of neonatal mortality rate (NMR) in Malawi in 2000&ndash;2019.
 
-Data files:
-    Nigeria-Vac/Data/gadm36_NGA_shp:
-        Shape file for admin0, admin1 and admin2. Is downloaded by main script.
-    Nigeria-Vac/Data/Nigeria_2017_proj:
-        Urban proportions in updated sampling frame from 2017
-    Nigeria-Vac/Data/Nigeria_AGG_DHS:
-        Data extracted from Nigeria 2018 DHS survey.
-    Nigeria-Vac/Data/Nigeria_pop:
-        Population rasters
-    Nigeria-Vac/Data/preparedCovRasters:
-        Prepared covariate rasters.
+<h2> Case studies </h2>
+<h3> Spatial estimation of vaccination coverage </h3>
+Start by running "Nigeria-Vac/Code/CaseStudy_Nigeria.R".
 
-Data sources:
-    WorldPop:
-        Poverty map for 2010 ($2 a day limit)
-            Link: https://www.worldpop.org/geodata/summary?id=1267
-        Population 2017:
-            Link: https://data.worldpop.org/GIS/Population/Global_2000_2020/2017/NGA/nga_ppp_2017_UNadj.tif
-        Children (male/female) aged 1--4 years.
-            Link (female): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_f_1_2018.tif
-            Link (male): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_m_1_2018.tif
-            License: https://creativecommons.org/licenses/by/4.0/
-    The Malaria Atlas Project
-        Accessibility to cities 2015
-        Link: https://malariaatlas.org/research-project/accessibility-to-cities/
-        License: http://creativecommons.org/licenses/by/4.0/
-    GADM:
-        Shape files of Nigeria (version 3.6): admin0, admin1 and admin2
-        Link: https://biogeo.ucdavis.edu/data/gadm3.6/shp/gadm36_NGA_shp.zip
-        License: Academic use only. No commercial use.
-    DHS:
-        Projected urban proportions at admin2 -- Personal correspondence
-        NDHS2018 survey + displaced GPS coordinates
-        License: Can share proportions and aggregated data from survey
+<h4> Goal </h4>
+We consider vaccination coverage for the first dose of measles-containing-vaccine (MCV1)
+among children aged 12&ndash;23 months in Nigeria. The goal of the analysis is estimation of MCV1 coverage for
+admin1, which consists of 36 states and the federal capital area, 
+and admin2, which consists of 774 local government areas (LGAs), and to this end we
+analyze the 2018 Nigeria Demographic and Health Survey.
+
+<h4> Code files </h4>
+<ul>
+    <li> <b>Nigeria-Vac/Code/CaseStudy_Nigeria.R:</b> Main script. Runs all models and validation and creates figures and data for tables. </li>
+    <li> <b>Nigeria-Vac/Code/functions.R:</b> Support code. Provides functions for fitting models and for aggregation. </li>
+</ul>
+
+<h4> Data files </h4>
+<ul>
+    <li> <b>Nigeria-Vac/Data/gadm36_NGA_shp:</b> Shape file for admin0, admin1 and admin2. Is downloaded by main script. </li>
+    <li> <b>Nigeria-Vac/Data/Nigeria_2017_proj:</b> Urban proportions in updated sampling frame from 2017. </li>
+    <li> <b>Nigeria-Vac/Data/Nigeria_AGG_DHS:</b> Data extracted from Nigeria 2018 DHS survey.</li>
+    <li> <b>Nigeria-Vac/Data/Nigeria_pop:</b> Population rasters.</li>
+    <li> <b>Nigeria-Vac/Data/preparedCovRasters:</b> Prepared covariate rasters.</li>
+</ul>
+
+<h4> Data sources </h4>
+<ul>
+    <li>WorldPop</li>
+    <ul>
+        <li> Poverty map for 2010 ($2 a day limit): https://www.worldpop.org/geodata/summary?id=1267</li>
+        <li> Population (all age, all sex) 2017: https://data.worldpop.org/GIS/Population/Global_2000_2020/2017/NGA/nga_ppp_2017_UNadj.tif</li>
+        <li> Population (1&ndash;4 years, female): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_f_1_2018.tif</li>
+        <li> Population (1&ndash;4 years, male): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_m_1_2018.tif</li>
+        <li> License: https://creativecommons.org/licenses/by/4.0/</li>
+        <li> Population rasters are automatically downloaded when running "Nigeria-Vac/Code/CaseStudy_Nigeria.R"</li>
+    </ul>
+    <li>The Malaria Atlas Project</li>
+    <ul>
+        <li> Accessibility to cities 2015: https://malariaatlas.org/research-project/accessibility-to-cities/</li>
+        <li> License: http://creativecommons.org/licenses/by/4.0/ </li>
+    </ul>
+    <li>GADM</li>
+    <ul>
+        <li> Shape files of Nigeria (version 3.6; admin0, admin1 and admin2): https://biogeo.ucdavis.edu/data/gadm3.6/shp/gadm36_NGA_shp.zip</li>
+        <li> License: Academic use only. No commercial use or redistribution.</li>
+        <li> Is downloaded automatically in "Nigeria-Vac/Code/CaseStudy_Nigeria.R".</li>
+    </ul>
+    <li>DHS</li>
+    <ul>
+        <li> Urban proportions in updated sampling frame for 2018 DHS survey:  Personal correspondence with DHS</li>
+        <li> Nigeria 2018 DHS survey (NDHS2018) + displaced GPS coordinates: https://dhsprogram.com/ </li>
+        <li> Acquired permission to share aggregated cluster data and displaced GPS coordinates. </li>
+    </ul>
+</ul>
         
 
