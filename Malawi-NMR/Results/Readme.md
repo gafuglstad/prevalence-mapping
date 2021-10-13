@@ -1,0 +1,1 @@
+This folder contains the processed estimates from the fitted models. The direct and smoothed direct estimates are included in this folder for reproducibility reasons, since the computation of these estimates require the use of the micro-level DHS data where additional registration is needed. These estimates can be recreated by ``../Codes/CaseStudy_Malawi_Direct_Estimation.R``
