@@ -79,7 +79,7 @@ The goal of the analysis is estimation of NMR for admin2 areas, which consists o
 
 <h4> Data files </h4>
 <ul>
-    <li> Malawi-NMR/Data/shapefiles:</b> Shape file for admin2 regions.</li>
+    <li> <b>Malawi-NMR/Data/shapefiles:</b> Shape file for admin2 regions.</li>
     <li> <b>Malawi-NMR/Data/IGME:</b> UN-IGME estimates of national NMR.</li>
     <li> <b>Malawi-NMR/Data/Malawi_AGG_DHS:</b> Data extracted from Malawi DHS surveys.</li>
     <li> <b>Malawi-NMR/Data/Malawi_Pop_Frac:</b> Urban/rural proportions computed from the WorldPop raster files. </li>
