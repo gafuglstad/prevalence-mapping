@@ -90,5 +90,8 @@ The goal of the analysis is estimation of NMR for admin2 areas, which consists o
     <li> <b>Malawi-NMR/Data/WorldPop-Population:</b> Population raster files from WorldPop. Not included in the repository due to size of the files. See the folder for details on how to download and process the data. </li>
 </ul>
 
+<h4> Data sources </h4>
+
+See individual folder for details.
         
 
