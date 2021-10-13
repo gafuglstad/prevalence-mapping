@@ -74,12 +74,12 @@ The goal of the analysis is estimation of NMR for admin2 areas, which consists o
 <h4> Code files </h4>
 <ul>
     <li> <b>Malawi-NMR/Code/CaseStudy_Malawi.R:</b> Main script. Runs all models and creates figures and data for tables. </li>
-    <li> Additional files for processing various raw input data and additional analysis, explained in <b>Malawi-NMR/Code/Readme.md<b> </li>
+    <li> Additional files for processing various raw input data and additional analysis, explained in <b>Malawi-NMR/Code/Readme.md</b> </li>
 </ul>
 
 <h4> Data files </h4>
 <ul>
-    <li> <b>Malawi-NMR/Data/shapefiles:</b> Shape file for admin2 regions.</li>
+    <li> Malawi-NMR/Data/shapefiles:</b> Shape file for admin2 regions.</li>
     <li> <b>Malawi-NMR/Data/IGME:</b> UN-IGME estimates of national NMR.</li>
     <li> <b>Malawi-NMR/Data/Malawi_AGG_DHS:</b> Data extracted from Malawi DHS surveys.</li>
     <li> <b>Malawi-NMR/Data/Malawi_Pop_Frac:</b> Urban/rural proportions computed from the WorldPop raster files. </li>
