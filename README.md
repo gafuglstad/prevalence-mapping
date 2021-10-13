@@ -67,7 +67,7 @@ analyze the 2018 Nigeria Demographic and Health Survey.
 Start by running "Nigeria-Vac/Code/CaseStudy_Malawi.R".
 
 <h4> Goal </h4>
-The goal of the analysis is estimation of NMR for admin2 areas, which consists of 28 regions from  2000 to 2015, and short term projection to 2019. To this end we analyze the 2010 and 2014-15 Malawi Demographic and Health Survey.
+The goal of the analysis is estimation of NMR for admin2 areas, which consists of 28 regions from  2000 to 2015, and short term projection to 2019. To this end we analyze the 2010 and 2015-16 Malawi Demographic and Health Survey.
 
 <h4> Code files </h4>
 <ul>
