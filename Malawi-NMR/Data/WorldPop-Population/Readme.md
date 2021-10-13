@@ -1,0 +1,1 @@
+This folder contains the original population raster from world pop. These raster files are not included in the repository due to their large sizes. They can be downloaded and processed by ``Codes/CaseStudy_Malawi_CaseStudy_Malawi_CalculateUR``
