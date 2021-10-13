@@ -164,8 +164,10 @@
     # Add number of trials
     myData$Ntrials = 1
     
-    # Remove household information and age information
-    myData = subset(myData, select = -c(householdIdx, age))
+    # NB: These are removed in stored data object in repository due to the fact
+    # that they are at a too fine level to be shared publicly. Household index
+    # is required to do direct estimation, but not in the rest of the code
+    # myData = subset(myData, select = -c(householdIdx, age))
     
     # Save
     save(file = "../Data/Nigeria_AGG_DHS/preparedDHSdata.RData", myData)
@@ -208,9 +210,15 @@
 ## Direct estimates
   print("Computing direct estimates...")
   
-  # Compute estimates
-  direct.est = getNigeriaDirect(myData)
-  direct.est.ur = getNigeriaDirect(myData, byUrban = TRUE)
+  if(is.null(myData$householdIdx)){
+    load("../Data/Nigeria_AGG_DHS/directEstimates.RData")
+  } else{
+    # Compute estimates
+    direct.est = getNigeriaDirect(myData)
+    direct.est.ur = getNigeriaDirect(myData, byUrban = TRUE)
+    
+    save(file = "../Data/Nigeria_AGG_DHS/directEstimates.RData", direct.est, direct.est.ur)
+  }
 
 ## Smoothed direct
   print("Computing smoothed direct estimates...")
