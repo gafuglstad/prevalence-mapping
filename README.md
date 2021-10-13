@@ -1,5 +1,3 @@
-# prevalence-mapping
-
 <h1>Code for "The Two Cultures for Prevalence Mapping: Small Area Estimation and Spatial Statistics"</h1>
 
 <h2> Description </h2>
@@ -69,12 +67,12 @@ analyze the 2018 Nigeria Demographic and Health Survey.
 Start by running "Nigeria-Vac/Code/CaseStudy_Malawi.R".
 
 <h4> Goal </h4>
-The goal of the analysis is estimation of NMR for admin2 areas, which consists of 28 regions from  2000 to 2015, and short term projection to 2019. To this end we analyze the 2010 and 2014-15 Malawi Demographic and Health Survey.
+The goal of the analysis is estimation of NMR for admin2 areas, which consists of 28 regions from  2000 to 2015, and short term projection to 2019. To this end we analyze the 2010 and 2015-16 Malawi Demographic and Health Survey.
 
 <h4> Code files </h4>
 <ul>
     <li> <b>Malawi-NMR/Code/CaseStudy_Malawi.R:</b> Main script. Runs all models and creates figures and data for tables. </li>
-    <li> Additional files for processing various raw input data and additional analysis, explained in <b>Malawi-NMR/Code/Readme.md<b> </li>
+    <li> Additional files for processing various raw input data and additional analysis, explained in <b>Malawi-NMR/Code/Readme.md</b> </li>
 </ul>
 
 <h4> Data files </h4>
