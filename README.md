@@ -65,7 +65,6 @@ analyze the 2018 Nigeria Demographic and Health Survey.
     </ul>
 </ul>
 
-<h2> Case studies </h2>
 <h3> Spatiotemporal estimation of Neonatal Mortality Rates (NMR) </h3>
 Start by running "Nigeria-Vac/Code/CaseStudy_Malawi.R".
 
