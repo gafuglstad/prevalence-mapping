@@ -1,5 +1,3 @@
-# prevalence-mapping
-
 <h1>Code for "The Two Cultures for Prevalence Mapping: Small Area Estimation and Spatial Statistics"</h1>
 
 <h2> Description </h2>
