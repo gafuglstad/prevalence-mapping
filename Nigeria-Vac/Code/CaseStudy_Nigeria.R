@@ -53,16 +53,7 @@
                   destfile = "../Data/Nigeria_pop/nga_ppp_2018_UNadj.tif")
   }
   
-## Download GADM
-  if(!file.exists("../Data/gadm36_NGA_shp.zip")){
-    download.file(url = "https://biogeo.ucdavis.edu/data/gadm3.6/shp/gadm36_NGA_shp.zip",
-                  destfile = "../Data/gadm36_NGA_shp.zip")
-    unzip(zipfile = "../Data/gadm36_NGA_shp.zip",
-          exdir = "../Data/gadm36_NGA_shp")
-  }
-  
-
-## This is the only option with provided data files
+## The only correct option here is 2017
   sampleFrame = 2017
 
 ## Load and prepare geography

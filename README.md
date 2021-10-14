@@ -52,8 +52,8 @@ analyze the 2018 Nigeria Demographic and Health Survey.
     <li>GADM</li>
     <ul>
         <li> Shape files of Nigeria (version 3.6; admin0, admin1 and admin2): https://biogeo.ucdavis.edu/data/gadm3.6/shp/gadm36_NGA_shp.zip</li>
-        <li> License: Academic use only. No commercial use or redistribution.</li>
-        <li> Is downloaded automatically in "Nigeria-Vac/Code/CaseStudy_Nigeria.R".</li>
+        <li> License: Academic use only. No commercial use or redistribution. See "Nigeria-Vac/Data/gadm36_NGA_shp/license.txt" for details.</li>
+	<li> Files for Nigeria included with permission from GADM</li>
     </ul>
     <li>DHS</li>
     <ul>
