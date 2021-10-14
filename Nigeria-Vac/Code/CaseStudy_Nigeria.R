@@ -825,40 +825,6 @@ for(cvFold in 1:10){
   row.names(scores.logit) = c("MSE", "MAE", "CRPS", "Log-score", "DSS", "Coverage")
   scores.logit = t(scores.logit)
   print(round(scores.logit, 2))
-  mu = rowMeans(logit(allLevels.spdeCov.holdOut$samples$p.overD))
-  stdDev = sqrt(direct.est$se^2 + apply(logit(allLevels.spdeCov.holdOut$samples$p.overD), 1, var))
-  crps.logit.spdeCov = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
-  ds.logit.spdeCov = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
-  
-  crps.logit = cbind(crps.logit.fixed$crps,
-                     crps.logit.smooth$crps,
-                     crps.logit.admin1$crps,
-                     crps.logit.admin2$crps,
-                     crps.logit.spde$crps,
-                     crps.logit.spdeCov$crps)
-  colnames(crps.logit) = c("NoSpace", "Smooth", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
-  
-  ign.logit = cbind(crps.logit.fixed$ign,
-                    crps.logit.smooth$ign,
-                    crps.logit.admin1$ign,
-                    crps.logit.admin2$ign,
-                    crps.logit.spde$ign,
-                    crps.logit.spdeCov$ign)
-  colnames(ign.logit) = c("NoSpace", "Smooth", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
-  
-  ds.logit = cbind(ds.logit.fixed,
-                   ds.logit.smooth,
-                   ds.logit.admin1,
-                   ds.logit.admin2,
-                   ds.logit.spde,
-                   ds.logit.spdeCov)
-  colnames(ds.logit) = c("NoSpace", "Smooth", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
-  
-  # Full table
-  scores.logit = rbind(mse.logit, mae.logit, colMeans(crps.logit), colMeans(ign.logit), ds.logit)
-  row.names(scores.logit) = c("MSE", "MAE", "CRPS", "Log-score", "DSS")
-  scores.logit = t(scores.logit)
-  print(round(scores.logit, 2))
   
 ## Scores (cluster level)
   getScores = function(y, n, inObj){
