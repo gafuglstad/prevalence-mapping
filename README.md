@@ -24,7 +24,7 @@ analyze the 2018 Nigeria Demographic and Health Survey.
 
 <h4> Data files </h4>
 <ul>
-    <li> <b>Nigeria-Vac/Data/gadm36_NGA_shp:</b> Shape file for admin0, admin1 and admin2. Is downloaded by main script. </li>
+    <li> <b>Nigeria-Vac/Data/gadm36_NGA_shp:</b> Shape file for admin0, admin1 and admin2. </li>
     <li> <b>Nigeria-Vac/Data/Nigeria_2017_proj:</b> Urban proportions in updated sampling frame from 2017. </li>
     <li> <b>Nigeria-Vac/Data/Nigeria_AGG_DHS:</b> Data extracted from Nigeria 2018 DHS survey.</li>
     <li> <b>Nigeria-Vac/Data/Nigeria_pop:</b> Population rasters.</li>
