@@ -1,4 +1,5 @@
 <h1>Code for "The Two Cultures for Prevalence Mapping: Small Area Estimation and Spatial Statistics"</h1>
+<a href="https://arxiv.org/abs/2110.09576">arXiv preprint</a>
 
 <h2> Description </h2>
 The paper concerns spatial and spatio-temporal estimation of prevalences in administrative areas. This repository contains
@@ -37,10 +38,10 @@ analyze the 2018 Nigeria Demographic and Health Survey.
         <li> Poverty map for 2010 ($2 a day limit): https://www.worldpop.org/geodata/summary?id=1267</li>
         <li> Population (all age, all sex) 2017: https://data.worldpop.org/GIS/Population/Global_2000_2020/2017/NGA/nga_ppp_2017_UNadj.tif</li>
         <li> Population (all age, all sex) 2018: https://data.worldpop.org/GIS/Population/Global_2000_2020/2018/NGA/nga_ppp_2018_UNadj.tif</li>
-        <li> Population (1&ndash;4 years, female): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_f_1_2018.tif</li>
-        <li> Population (1&ndash;4 years, male): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_m_1_2018.tif</li>
-        <li> Population (1&ndash;4 years, female): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2006/NGA/nga_f_1_2006.tif</li>
-        <li> Population (1&ndash;4 years, male): https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2006/NGA/nga_m_1_2006.tif</li>
+        <li> Population (1&ndash;4 years, female) 2018: https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_f_1_2018.tif</li>
+        <li> Population (1&ndash;4 years, male) 2018: https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2018/NGA/nga_m_1_2018.tif</li>
+        <li> Population (1&ndash;4 years, female) 2006: https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2006/NGA/nga_f_1_2006.tif</li>
+        <li> Population (1&ndash;4 years, male) 2006: https://data.worldpop.org/GIS/AgeSex_structures/Global_2000_2020/2006/NGA/nga_m_1_2006.tif</li>
         <li> License: https://creativecommons.org/licenses/by/4.0/</li>
         <li> Population rasters are automatically downloaded when running "Nigeria-Vac/Code/CaseStudy_Nigeria.R"</li>
     </ul>
