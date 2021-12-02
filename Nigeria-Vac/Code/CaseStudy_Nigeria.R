@@ -253,7 +253,7 @@
                                  listCov = listCov)
 
   # Compute hold-out estimates
-  synthEst.holdout = synthEst
+  synthEst.holdOut = synthEst
   for(i in 1:37){
     print("Take out region (Synthetic):")
     print(i)
@@ -282,7 +282,7 @@
     synthEst.holdOut$admin1[i,]                 = synth.tmp$admin1[i,]
     for(k in idxAdm2){
       synthEst.holdOut$admin2[k,]                    = synth.tmp$admin2[k,]
-      synthEst.holdOut$admin2.ur[(k-1)*2+c(1,2),]    = synth.spde.tmp$admin2.ur[(k-1)*2+c(1,2),]
+      synthEst.holdOut$admin2.ur[(k-1)*2+c(1,2),]    = synth.tmp$admin2.ur[(k-1)*2+c(1,2),]
     }
     synthEst.holdOut$samples$p.overD[i,]    = synth.tmp$samples$p.overD[i,]
     synthEst.holdOut$samples$pRur.overD[i,] = synth.tmp$samples$pRur.overD[i,]
@@ -775,6 +775,7 @@ for(cvFold in 1:10){
   # Hold-out state MSE
   mse.fixed = mean((direct.est$p_Med-fixed.holdOut$overD$p_Med)^2)
   mse.smooth = mean((direct.est$p_Med-smooth.direct.holdOut$p_Med)^2)
+  mse.synth  = mean((direct.est$p_Med-synthEst.holdOut$admin1$p_Med)^2)
   mse.admin1 = mean((direct.est$p_Med-admin1.bym.holdOut$overD$p_Med)^2)
   mse.admin2 = mean((direct.est$p_Med-admin2.bym.holdOut$overD$p_Med)^2)
   mse.spde = mean((direct.est$p_Med-allLevels.spde.holdOut$overD$p_Med)^2)
@@ -782,24 +783,26 @@ for(cvFold in 1:10){
   
   mse.logit.fixed = mean((logit(direct.est$p_Med)-logit(fixed.holdOut$overD$p_Med))^2)
   mse.logit.smooth = mean((logit(direct.est$p_Med)-logit(smooth.direct.holdOut$p_Med))^2)
+  mse.logit.synth  = mean((logit(direct.est$p_Med)-logit(synthEst.holdOut$admin1$p_Med))^2)
   mse.logit.admin1 = mean((logit(direct.est$p_Med)-logit(admin1.bym.holdOut$overD$p_Med))^2)
   mse.logit.admin2 = mean((logit(direct.est$p_Med)-logit(admin2.bym.holdOut$overD$p_Med))^2)
   mse.logit.spde = mean((logit(direct.est$p_Med)-logit(allLevels.spde.holdOut$overD$p_Med))^2)
   mse.logit.spdeCov = mean((logit(direct.est$p_Med)-logit(allLevels.spdeCov.holdOut$overD$p_Med))^2)
   
-  mse.logit = cbind(mse.logit.fixed, mse.logit.smooth, mse.logit.admin1, mse.logit.admin2, mse.logit.spde, mse.logit.spdeCov)
-  colnames(mse.logit) = c("NoSpace", "Smooth", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  mse.logit = cbind(mse.logit.fixed, mse.logit.smooth, mse.logit.synth, mse.logit.admin1, mse.logit.admin2, mse.logit.spde, mse.logit.spdeCov)
+  colnames(mse.logit) = c("NoSpace", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   # Mean absolute error
   mae.logit.fixed = mean(abs(logit(direct.est$p_Med)-logit(fixed.holdOut$overD$p_Med)))
   mae.logit.smooth = mean(abs(logit(direct.est$p_Med)-logit(smooth.direct.holdOut$p_Med)))
+  mae.logit.synth = mean(abs(logit(direct.est$p_Med)-logit(synthEst.holdOut$admin1$p_Med)))
   mae.logit.admin1 = mean(abs(logit(direct.est$p_Med)-logit(admin1.bym.holdOut$overD$p_Med)))
   mae.logit.admin2 = mean(abs(logit(direct.est$p_Med)-logit(admin2.bym.holdOut$overD$p_Med)))
   mae.logit.spde = mean(abs(logit(direct.est$p_Med)-logit(allLevels.spde.holdOut$overD$p_Med)))
   mae.logit.spdeCov = mean(abs(logit(direct.est$p_Med)-logit(allLevels.spdeCov.holdOut$overD$p_Med)))
   
-  mae.logit = cbind(mae.logit.fixed, mae.logit.smooth, mae.logit.admin1, mae.logit.admin2, mae.logit.spde, mae.logit.spdeCov)
-  colnames(mae.logit) = c("Fixed", "Smooth", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  mae.logit = cbind(mae.logit.fixed, mae.logit.smooth, mae.logit.synth, mae.logit.admin1, mae.logit.admin2, mae.logit.spde, mae.logit.spdeCov)
+  colnames(mae.logit) = c("Fixed", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   # Hold-out CRPS
   mu = rowMeans(logit(fixed.holdOut$samples$p.overD))
@@ -811,6 +814,11 @@ for(cvFold in 1:10){
   stdDev = sqrt(direct.est$se^2 + smooth.direct.holdOut$sd^2)
   crps.logit.smooth = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
   ds.logit.smooth = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
+  
+  mu = rowMeans(logit(synthEst.holdOut$samples$p))
+  stdDev = sqrt(direct.est$se^2 + apply(logit(synthEst.holdOut$samples$p), 1, var))
+  crps.logit.synth = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
+  ds.logit.synth = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
   
   mu = rowMeans(logit(admin1.bym.holdOut$samples$p.overD))
   stdDev = sqrt(direct.est$se^2 + apply(logit(admin1.bym.holdOut$samples$p.overD), 1, var))
@@ -834,41 +842,46 @@ for(cvFold in 1:10){
   
   crps.logit = cbind(crps.logit.fixed$crps,
                      crps.logit.smooth$crps,
+                     crps.logit.synth$crps,
                      crps.logit.admin1$crps,
                      crps.logit.admin2$crps,
                      crps.logit.spde$crps,
                      crps.logit.spdeCov$crps)
-  colnames(crps.logit) = c("NoSpace", "Smooth", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  colnames(crps.logit) = c("NoSpace", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   ign.logit = cbind(crps.logit.fixed$ign,
                     crps.logit.smooth$ign,
+                    crps.logit.synth$ign,
                     crps.logit.admin1$ign,
                     crps.logit.admin2$ign,
                     crps.logit.spde$ign,
                     crps.logit.spdeCov$ign)
-  colnames(ign.logit) = c("NoSpace", "Smooth", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  colnames(ign.logit) = c("NoSpace", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   ds.logit = cbind(ds.logit.fixed,
                    ds.logit.smooth,
+                   ds.logit.synth,
                    ds.logit.admin1,
                    ds.logit.admin2,
                    ds.logit.spde,
                    ds.logit.spdeCov)
-  colnames(ds.logit) = c("NoSpace", "Smooth", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  colnames(ds.logit) = c("NoSpace", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   cov.noS = sum((fixed.holdOut$overD$p_Low < direct.est$p_Med) & (fixed.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
   cov.smooth = sum((smooth.direct.holdOut$p_Low < direct.est$p_Med) & (smooth.direct.holdOut$p_Upp > direct.est$p_Med))/37*100
+  cov.synth = sum((synthEst.holdOut$admin1$p_Low < direct.est$p_Med) & (synthEst.holdOut$admin1$p_Upp > direct.est$p_Med))/37*100
   cov.a1 = sum((admin1.bym.holdOut$overD$p_Low < direct.est$p_Med) & (admin1.bym.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
   cov.a2 = sum((admin2.bym.holdOut$overD$p_Low < direct.est$p_Med) & (admin2.bym.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
   cov.cont = sum((allLevels.spde.holdOut$overD$p_Low < direct.est$p_Med) & (allLevels.spde.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
   cov.covC = sum((allLevels.spdeCov.holdOut$overD$p_Low < direct.est$p_Med) & (allLevels.spdeCov.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
   coverAdm1 = cbind(cov.noS,
                     cov.smooth,
+                    cov.synth,
                     cov.a1,
                     cov.a2,
                     cov.cont,
                     cov.covC)
-  colnames(coverAdm1) = colnames(ds.logit) = c("NoSpace", "Smooth", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  colnames(coverAdm1) = colnames(ds.logit) = c("NoSpace", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   # Full table
   scores.logit = rbind(mse.logit, mae.logit, colMeans(crps.logit), colMeans(ign.logit), ds.logit, coverAdm1)
@@ -994,24 +1007,28 @@ for(cvFold in 1:10){
     # Color limits
     colLim = c(min(direct.est$p_Med,
                    smooth.direct$p_Med,
+                   synthEst$admin1$p_Med,
                    admin1.bym$overD$p_Med,
                    admin2.bym$overD$p_Med,
                    allLevels.spde$overD$p_Med,
                    allLevels.spdeCov$overD$p_Med),
                max(direct.est$p_Med,
                    smooth.direct$p_Med,
+                   synthEst$admin1$p_Med,
                    admin1.bym$overD$p_Med,
                    admin2.bym$overD$p_Med,
                    allLevels.spde$overD$p_Med,
                    allLevels.spdeCov$overD$p_Med))
     colLim2 = c(min(direct.est$p_Upp-direct.est$p_Low,
                     smooth.direct$p_Upp-smooth.direct$p_Low,
+                    synthEst$admin1$p_Upp-synthEst$admin1$p_Low,
                     admin1.bym$overD$p_Upp-admin1.bym$overD$p_Low,
                     admin2.bym$overD$p_Upp-admin2.bym$overD$p_Low,
                     allLevels.spde$overD$p_Upp-allLevels.spde$overD$p_Low,
                     allLevels.spdeCov$overD$p_Upp-allLevels.spdeCov$overD$p_Low),
                 max(direct.est$p_Upp-direct.est$p_Low,
                     smooth.direct$p_Upp-smooth.direct$p_Low,
+                    synthEst$admin1$p_Upp-synthEst$admin1$p_Low,
                     admin1.bym$overD$p_Upp-admin1.bym$overD$p_Low,
                     admin2.bym$overD$p_Upp-admin2.bym$overD$p_Low,
                     allLevels.spde$overD$p_Upp-allLevels.spde$overD$p_Low,
@@ -1035,6 +1052,17 @@ for(cvFold in 1:10){
                 colLim = colLim)
     plotAreaCol(fName = 'Figures/nig_admin1_MCV1_smoothDirect_unc.png', 
                 estVal = smooth.direct$p_Upp-smooth.direct$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    # Smoothed direct
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_synthetic.png', 
+                estVal = synthEst$admin1$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_synthetic_unc.png', 
+                estVal = synthEst$admin1$p_Upp-synthEst$admin1$p_Low, 
                 graph = nigeriaMap_admin1,
                 colLim = colLim2,
                 leg = "CI width")
@@ -1086,18 +1114,33 @@ for(cvFold in 1:10){
     
   ## Admin2   
     # Color limits
-    colLim3 = c(min(admin2.bym$admin2.overD$p_Med,
-                   allLevels.spde$admin2.overD$p_Med,
-                   allLevels.spdeCov$admin2.overD$p_Med),
-               max(admin2.bym$admin2.overD$p_Med,
-                   allLevels.spde$admin2.overD$p_Med,
-                   allLevels.spdeCov$admin2.overD$p_Med))
-    colLim4 = c(min(admin2.bym$admin2.overD$p_Upp-admin2.bym$admin2.overD$p_Low,
+    colLim3 = c(min(synthEst$admin2$p_Med,
+                    admin2.bym$admin2.overD$p_Med,
+                    allLevels.spde$admin2.overD$p_Med,
+                    allLevels.spdeCov$admin2.overD$p_Med),
+                max(synthEst$admin2$p_Med,
+                    admin2.bym$admin2.overD$p_Med,
+                    allLevels.spde$admin2.overD$p_Med,
+                    allLevels.spdeCov$admin2.overD$p_Med))
+    colLim4 = c(min(synthEst$admin2$p_Upp-synthEst$admin2$p_Low,
+                    admin2.bym$admin2.overD$p_Upp-admin2.bym$admin2.overD$p_Low,
                     allLevels.spde$admin2.overD$p_Upp-allLevels.spde$admin2.overD$p_Low,
                     allLevels.spdeCov$admin2.overD$p_Upp-allLevels.spdeCov$admin2.overD$p_Low),
-                max(admin2.bym$admin2.overD$p_Upp-admin2.bym$admin2.overD$p_Low,
+                max(synthEst$admin2$p_Upp-synthEst$admin2$p_Low,
+                    admin2.bym$admin2.overD$p_Upp-admin2.bym$admin2.overD$p_Low,
                     allLevels.spde$admin2.overD$p_Upp-allLevels.spde$admin2.overD$p_Low,
                     allLevels.spdeCov$admin2.overD$p_Upp-allLevels.spdeCov$admin2.overD$p_Low))
+    
+    # Synthetic
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_synthetic.png', 
+                estVal = synthEst$admin2$p_Med, 
+                graph = nigeriaMap,
+                colLim = colLim3)
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_synthetic_unc.png', 
+                estVal = synthEst$admin2$p_Upp-synthEst.bym$admin2$p_Low, 
+                graph = nigeriaMap,
+                colLim = colLim4,
+                leg = "CI width")
     
     # BYM (admin2)
     plotAreaCol(fName = 'Figures/nig_admin2_MCV1_bymAdm2.png', 

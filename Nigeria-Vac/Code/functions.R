@@ -129,6 +129,7 @@ getNigeriaSynthetic = function(myData, popList, nameAdm1, nSamp = 1000, onlyAdm2
       # Calculate samples
       localSamples = Xdesign%*%t(beta)
       localSamples = 1/(1+exp(-localSamples))
+      localSamples = localSamples*kronecker(matrix(1, nrow = 1, ncol = nSamp), matrix(popList$popAdm2.2018[[i]][[2]], ncol = 1))
       
       # Save in data object
       admin2[i, ] = colSums(localSamples, na.rm = TRUE)/(urbPop+rurPop)
