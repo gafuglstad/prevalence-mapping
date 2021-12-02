@@ -246,10 +246,10 @@
   for(i in 1:774){
     nameAdm1 = c(nameAdm1, strsplit(nameVec[i], ":")[[1]][1])
   }
-  syntEst = aggSPDE(myData,
-                    popList = nigeriaPop,
-                    nameAdm1 = nameAdm1,
-                    nSamp = 1000)
+  syntEst = getNigeriaSynthetic(myData,
+                                popList = nigeriaPop,
+                                nameAdm1 = nameAdm1,
+                                nSamp = 1000)
 
 
 ## Intercept + urban/rural
