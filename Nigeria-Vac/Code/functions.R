@@ -123,7 +123,7 @@ getFixedLGM = function(myData, clustPrior){
                   family = "binomial",
                   Ntrials = Ntrials,
                   control.fixed = list(prec = 1e-4, prec.intercept = 1e-4),
-                  control.compute=list(config = TRUE),
+                  control.compute=list(config = TRUE, return.marginals.predictor = TRUE),
                   control.predictor = list(compute = TRUE))
   
   return(res.inla)
@@ -156,7 +156,7 @@ getAreaLGM = function(myData, nigeriaGraph, bym2prior, clustPrior, admin2 = FALS
                   family = "binomial",
                   Ntrials = Ntrials,
                   control.fixed = list(prec = 1e-4, prec.intercept = 1e-4),
-                  control.compute=list(config = TRUE),
+                  control.compute=list(config = TRUE, return.marginals.predictor = TRUE),
                   control.predictor = list(compute = TRUE))
   
   return(res.inla)
@@ -209,7 +209,7 @@ getContLGM = function(myData, mesh, useCov = FALSE, prior.range, prior.sigma, cl
                        control.fixed = list(prec = 1e-4,
                                             prec.intercept = 1e-4),
                        control.predictor = list(A = inla.stack.A(stk), compute = TRUE),
-                       control.compute = list(config = TRUE))
+                       control.compute = list(config = TRUE, return.marginals.predictor = TRUE))
   
   return(res.inla.spde)
 }
