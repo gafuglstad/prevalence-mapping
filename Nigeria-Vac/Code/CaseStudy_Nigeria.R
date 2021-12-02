@@ -249,7 +249,8 @@
   syntEst = getNigeriaSynthetic(myData,
                                 popList = nigeriaPop,
                                 nameAdm1 = nameAdm1,
-                                nSamp = 1000)
+                                nSamp = 1000,
+                                listCov = listCov)
 
 
 ## Intercept + urban/rural
