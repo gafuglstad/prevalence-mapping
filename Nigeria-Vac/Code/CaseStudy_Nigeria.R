@@ -1137,7 +1137,7 @@ for(cvFold in 1:10){
                 graph = nigeriaMap,
                 colLim = colLim3)
     plotAreaCol(fName = 'Figures/nig_admin2_MCV1_synthetic_unc.png', 
-                estVal = synthEst$admin2$p_Upp-synthEst.bym$admin2$p_Low, 
+                estVal = synthEst$admin2$p_Upp-synthEst$admin2$p_Low, 
                 graph = nigeriaMap,
                 colLim = colLim4,
                 leg = "CI width")
