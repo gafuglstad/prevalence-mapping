@@ -222,8 +222,8 @@ getNigeriaSynthetic = function(myData, popList, nameAdm1, nSamp = 1000, onlyAdm2
   ## Return results
   return(list(admin1.ur = synt1.overD.ur,
               admin1 = synt1.overD,
-              admin2.overD.ur = synt2.overD.ur,
-              admin2.overD = synt2.overD,
+              admin2.ur = synt2.overD.ur,
+              admin2 = synt2.overD,
               samples = list(p = admin1,
                              pRur = admin1.rur,
                              pUrb = admin1.urb)))

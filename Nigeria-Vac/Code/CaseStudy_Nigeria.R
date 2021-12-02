@@ -246,12 +246,48 @@
   for(i in 1:774){
     nameAdm1 = c(nameAdm1, strsplit(nameVec[i], ":")[[1]][1])
   }
-  syntEst = getNigeriaSynthetic(myData,
-                                popList = nigeriaPop,
-                                nameAdm1 = nameAdm1,
-                                nSamp = 1000,
-                                listCov = listCov)
+  synthEst = getNigeriaSynthetic(myData,
+                                 popList = nigeriaPop,
+                                 nameAdm1 = nameAdm1,
+                                 nSamp = 1000,
+                                 listCov = listCov)
 
+  # Compute hold-out estimates
+  synthEst.holdout = synthEst
+  for(i in 1:37){
+    print("Take out region (Synthetic):")
+    print(i)
+    print(Sys.time())
+    
+    # Remove data from region i
+    tmpData = myData
+    idx = as.numeric(myData$admin1Fac) == i
+    tmpData$measles[idx] = NA
+    
+    # Only estimate necessary regions
+    unNameAdm1 = unique(nameAdm1)
+    idxAdm2 = which(nameAdm1 == unNameAdm1[i])
+    
+    # Fit model
+    synth.tmp = getNigeriaSynthetic(tmpData,
+                                    popList = nigeriaPop,
+                                    nameAdm1 = nameAdm1,
+                                    nSamp = 1000,
+                                    listCov = listCov,
+                                    onlyAdm2 = idxAdm2,
+                                    onlyAdm1 = c(i))
+    
+    # Extract estimate
+    synthEst.holdOut$admin1.ur[2*(i-1)+c(1,2),] = synth.tmp$admin1.ur[2*(i-1)+c(1,2),]
+    synthEst.holdOut$admin1[i,]                 = synth.tmp$admin1[i,]
+    for(k in idxAdm2){
+      synthEst.holdOut$admin2[k,]                    = synth.tmp$admin2[k,]
+      synthEst.holdOut$admin2.ur[(k-1)*2+c(1,2),]    = synth.spde.tmp$admin2.ur[(k-1)*2+c(1,2),]
+    }
+    synthEst.holdOut$samples$p.overD[i,]    = synth.tmp$samples$p.overD[i,]
+    synthEst.holdOut$samples$pRur.overD[i,] = synth.tmp$samples$pRur.overD[i,]
+    synthEst.holdOut$samples$pUrb.overD[i,] = synth.tmp$samples$pUrb.overD[i,]
+}
 
 ## Intercept + urban/rural
   print("Computing simple model...")
