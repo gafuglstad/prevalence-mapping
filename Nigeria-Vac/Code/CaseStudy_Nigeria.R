@@ -284,9 +284,9 @@
       synthEst.holdOut$admin2[k,]                    = synth.tmp$admin2[k,]
       synthEst.holdOut$admin2.ur[(k-1)*2+c(1,2),]    = synth.tmp$admin2.ur[(k-1)*2+c(1,2),]
     }
-    synthEst.holdOut$samples$p.overD[i,]    = synth.tmp$samples$p.overD[i,]
-    synthEst.holdOut$samples$pRur.overD[i,] = synth.tmp$samples$pRur.overD[i,]
-    synthEst.holdOut$samples$pUrb.overD[i,] = synth.tmp$samples$pUrb.overD[i,]
+    synthEst.holdOut$samples$p[i,]    = synth.tmp$samples$p[i,]
+    synthEst.holdOut$samples$pRur[i,] = synth.tmp$samples$pRur[i,]
+    synthEst.holdOut$samples$pUrb[i,] = synth.tmp$samples$pUrb[i,]
 }
 
 ## Intercept + urban/rural
