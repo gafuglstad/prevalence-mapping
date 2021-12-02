@@ -101,7 +101,6 @@ getNigeriaSynthetic = function(myData, popList, nameAdm1, nSamp = 1000, onlyAdm2
     admin2.urb = matrix(NA, nrow = 774, ncol = nSamp)
     admin2.rur = matrix(NA, nrow = 774, ncol = nSamp)
     for(i in 1:774){
-      print(i)
       if(!(i%in%onlyAdm2)){
         next
       }
