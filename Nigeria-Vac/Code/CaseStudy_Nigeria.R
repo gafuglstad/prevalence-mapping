@@ -17,6 +17,7 @@
   library(raster)
   library(verification)
   library(scoringRules)
+  library(MASS)
 
 ## Helper functions
   source('functions.R')
@@ -59,8 +60,8 @@
 ## Load and prepare geography
   # Read admin2 map
   if(!file.exists("../Data/gadm36_NGA_shp/gadm36_NGA_shp"))
-  nigeriaMap = readOGR(dsn = "../Data/gadm36_NGA_shp",
-                       layer = "gadm36_NGA_2")
+    nigeriaMap = readOGR(dsn = "../Data/gadm36_NGA_shp",
+                         layer = "gadm36_NGA_2")
   
   # Remove Lake Chad (Water body)
   nigeriaMap = nigeriaMap[-160,]
@@ -238,6 +239,18 @@
     # Extract estimate
     smooth.direct.holdOut[i,] = tmpRes[i,]
   }
+  
+## Synthetic estimation
+  print("Computing sythetic estimate...")
+  nameAdm1 = c()
+  for(i in 1:774){
+    nameAdm1 = c(nameAdm1, strsplit(nameVec[i], ":")[[1]][1])
+  }
+  syntEst = aggSPDE(myData,
+                    popList = nigeriaPop,
+                    nameAdm1 = nameAdm1,
+                    nSamp = 1000)
+
 
 ## Intercept + urban/rural
   print("Computing simple model...")

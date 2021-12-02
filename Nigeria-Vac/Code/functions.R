@@ -72,6 +72,163 @@ getNigeriaDirect = function(myData, byUrban = FALSE){
   return(direct.est)
 }
 
+# Synthetic unit-level estimation
+getNigeriaSynthetic = function(myData, popList, nameAdm1, nSamp = 1000, onlyAdm2 = 1:774, onlyAdm1 = 1:37, listCov){
+  ## Step 1: Design-based estimates
+    # Introduce dummy variable
+    myData$urbanDummy = (myData$urban == "U")+0
+    
+    # Get direct stratum-specific direct estimates
+    my.svydesign <- svydesign(id= ~clusterIdx + householdIdx,
+                              strata=~stratum, nest=T, 
+                              weights=~weight, data=myData)
+    
+    # Fit GLM
+    syntGLM.res = svyglm(measles~urban + poverty+lAccess,
+                         design = my.svydesign,
+                         family = quasibinomial)
+    
+    # Get fit
+    mu = syntGLM.res$coefficients
+    Sig = vcov(syntGLM.res)
+    
+    # Get samples
+    beta = mvrnorm(n = nSamp, mu = mu, Sigma = Sig)
+  
+  ## Step 2: Admin2 samples
+    # Iterate through admin2 areas
+    admin2 = matrix(NA, nrow = 774, ncol = nSamp)
+    admin2.urb = matrix(NA, nrow = 774, ncol = nSamp)
+    admin2.rur = matrix(NA, nrow = 774, ncol = nSamp)
+    for(i in 1:774){
+      print(i)
+      if(!(i%in%onlyAdm2)){
+        next
+      }
+      # Urban indicies & cell numbers from raster
+      idxUrb = popList$idxUrb[[i]]
+      cellNum = popList$popAdm2.2018[[i]][[1]][,1]
+      
+      # Get x and y coordinates
+      pop2018 = raster("../Data/Nigeria_pop/nga_ppp_2018_UNadj.tif")
+      xyCor = xyFromCell(pop2018, cell = cellNum)
+      
+      # Get covariate values
+      Xdesign = matrix(NA, nrow = dim(xyCor)[1], ncol = 2)
+      for(j in 1:length(listCov)){
+        Xdesign[,j] = raster::extract(x = listCov[[j]]$raster,
+                                      y = xyCor)
+      }
+      Xdesign = cbind(1, idxUrb+0, Xdesign)
+      
+      # Get populations
+      urbPop = sum(popList$popAdm2.2018[[i]][[2]][idxUrb], na.rm = TRUE)
+      rurPop = sum(popList$popAdm2.2018[[i]][[2]][!idxUrb], na.rm = TRUE)
+      uProp = urbPop/(urbPop+rurPop)
+      
+      # Calculate samples
+      localSamples = Xdesign%*%t(beta)
+      localSamples = 1/(1+exp(-localSamples))
+      
+      # Save in data object
+      admin2[i, ] = colSums(localSamples, na.rm = TRUE)/(urbPop+rurPop)
+      admin2.urb[i,] = colSums(localSamples[idxUrb,, drop = FALSE], na.rm = TRUE)/urbPop
+      admin2.rur[i,] = colSums(localSamples[!idxUrb,,drop = FALSE], na.rm = TRUE)/rurPop
+    }
+  
+  ## Step 3: Admin1 samples
+    # Iterate through admin2 areas
+    admin1 = matrix(0, nrow = 37, ncol = nSamp)
+    admin1.urb = matrix(0, nrow = 37, ncol = nSamp)
+    admin1.rur = matrix(0, nrow = 37, ncol = nSamp)
+    unNameAdm1 = unique(nameAdm1)
+    for(i in 1:37){
+      if(!(i%in%onlyAdm1)){
+        next
+      }
+      # Get indicies of admin2 areas
+      idxAdm2 = which(nameAdm1 == unNameAdm1[i])
+      totUrb = 0
+      totRur = 0
+      for(k in idxAdm2){
+        idxUrb = popList$idxUrb[[k]]
+        currUrb = sum(popList$popAdm2.2018[[k]][[2]][idxUrb], na.rm = TRUE)
+        currRur = sum(popList$popAdm2.2018[[k]][[2]][!idxUrb], na.rm = TRUE)
+        totUrb = totUrb + currUrb
+        totRur = totRur + currRur
+        
+        admin1[i,] = admin1[i,] + admin2[k,]*(currUrb+currRur)
+        if(currUrb > 0)
+          admin1.urb[i,] = admin1.urb[i,] + admin2.urb[k,]*currUrb
+        if(currRur > 0)
+          admin1.rur[i,] = admin1.rur[i,] + admin2.rur[k,]*currRur
+      }
+      admin1[i,] = admin1[i,]/(totUrb+totRur)
+      admin1.urb[i,] = admin1.urb[i,]/totUrb
+      admin1.rur[i,] = admin1.rur[i,]/totRur
+    }
+    
+  ## Calculate quantiles
+  pAdmin1     = matrix(0, nrow = 37, ncol = 3)
+  pAdmin1.rur = matrix(0, nrow = 37, ncol = 3)
+  pAdmin1.urb = matrix(0, nrow = 37, ncol = 3)
+  for(i in 1:37){
+    pAdmin1[i,] = quantile(admin1[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin1.rur[i,] = quantile(admin1.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin1.urb[i,] = quantile(admin1.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+  }
+  
+  pAdmin2     = matrix(0, nrow = 774, ncol = 3)
+  pAdmin2.rur = matrix(0, nrow = 774, ncol = 3)
+  pAdmin2.urb = matrix(0, nrow = 774, ncol = 3)
+  for(i in 1:774){
+    pAdmin2[i,] = quantile(admin2[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin2.rur[i,] = quantile(admin2.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin2.urb[i,] = quantile(admin2.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+  }
+  
+  ## Make result objects (admin1)
+  synt1.overD.ur = data.frame(admin1 = rep(levels(myData$admin1Fac), 2),
+                              urb = rep( c("R", "U"), each = 37),
+                              p_Low = c(pAdmin1.rur[, 1], pAdmin1.urb[, 1]),
+                              p_Med = c(pAdmin1.rur[, 2], pAdmin1.urb[, 2]),
+                              p_Upp = c(pAdmin1.rur[, 3], pAdmin1.urb[, 3]))
+  idx = order(synt1.overD.ur$admin1, synt1.overD.ur$urb)
+  synt1.overD.ur = synt1.overD.ur[idx,]
+  
+  synt1.overD = data.frame(admin1 = levels(myData$admin1Fac),
+                           p_Low = pAdmin1[, 1],
+                           p_Med = pAdmin1[, 2],
+                           p_Upp = pAdmin1[, 3])
+  idx = order(synt1.overD$admin1)
+  synt1.overD = synt1.overD[idx,]
+  
+  ## Make result objects (admin2)
+  synt2.overD.ur = data.frame(admin2 = rep(levels(myData$admin2Fac), 2),
+                              urb = rep( c("R", "U"), each = 774),
+                              p_Low = c(pAdmin2.rur[, 1], pAdmin2.urb[, 1]),
+                              p_Med = c(pAdmin2.rur[, 2], pAdmin2.urb[, 2]),
+                              p_Upp = c(pAdmin2.rur[, 3], pAdmin2.urb[, 3]))
+  idx = order(synt2.overD.ur$admin2, synt2.overD.ur$urb)
+  synt2.overD.ur = synt2.overD.ur[idx,]
+  
+  synt2.overD = data.frame(admin2 = levels(myData$admin2Fac),
+                           p_Low = pAdmin2[, 1],
+                           p_Med = pAdmin2[, 2],
+                           p_Upp = pAdmin2[, 3])
+  idx = order(synt2.overD$admin2)
+  synt2.overD = synt2.overD[idx,]
+  
+  ## Return results
+  return(list(admin1.ur = synt1.overD.ur,
+              admin1 = synt1.overD,
+              admin2.overD.ur = synt2.overD.ur,
+              admin2.overD = synt2.overD,
+              samples = list(p = admin1,
+                             pRur = admin1.rur,
+                             pUrb = admin1.urb)))
+}
+
 # Compute smoothed direct
 getNigeriaSmoothDirect = function(direct.est, nigeriaGraph, bym2prior){
   # make dataobject
