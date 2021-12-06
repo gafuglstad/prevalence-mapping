@@ -256,7 +256,7 @@
   # Compute hold-out estimates
   synthEst.logit1.holdOut = synthEst.logit1
   for(i in 1:37){
-    print("Take out region (Synthetic):")
+    print("Take out region (Synthetic 1):")
     print(i)
     print(Sys.time())
     
@@ -307,7 +307,7 @@
   # Compute hold-out estimates
   synthEst.logit2.holdOut = synthEst.logit2
   for(i in 1:37){
-    print("Take out region (Synthetic):")
+    print("Take out region (Synthetic 2):")
     print(i)
     print(Sys.time())
     
@@ -358,7 +358,7 @@
   # Compute hold-out estimates
   synthEst.linear1.holdOut = synthEst.linear1
   for(i in 1:37){
-    print("Take out region (Synthetic):")
+    print("Take out region (Synthetic 3):")
     print(i)
     print(Sys.time())
     
@@ -409,7 +409,7 @@
   # Compute hold-out estimates
   synthEst.linear2.holdOut = synthEst.linear2
   for(i in 1:37){
-    print("Take out region (Synthetic):")
+    print("Take out region (Synthetic 4):")
     print(i)
     print(Sys.time())
     
