@@ -240,20 +240,21 @@
     smooth.direct.holdOut[i,] = tmpRes[i,]
   }
   
-## Synthetic estimation
-  print("Computing sythetic estimate...")
+## Synthetic 1: Logit simple
+  print("Computing sythetic estimate (logit1)...")
   nameAdm1 = c()
   for(i in 1:774){
     nameAdm1 = c(nameAdm1, strsplit(nameVec[i], ":")[[1]][1])
   }
-  synthEst = getNigeriaSynthetic(myData,
-                                 popList = nigeriaPop,
-                                 nameAdm1 = nameAdm1,
-                                 nSamp = 1000,
-                                 listCov = listCov)
+  synthEst.logit1 = getNigeriaSyntheticLogit(myData,
+                                             popList = nigeriaPop,
+                                             nameAdm1 = nameAdm1,
+                                             nSamp = 1000,
+                                             listCov = listCov,
+                                             sepUR = FALSE)
 
   # Compute hold-out estimates
-  synthEst.holdOut = synthEst
+  synthEst.logit1.holdOut = synthEst.logit1
   for(i in 1:37){
     print("Take out region (Synthetic):")
     print(i)
@@ -269,25 +270,179 @@
     idxAdm2 = which(nameAdm1 == unNameAdm1[i])
     
     # Fit model
-    synth.tmp = getNigeriaSynthetic(tmpData,
-                                    popList = nigeriaPop,
-                                    nameAdm1 = nameAdm1,
-                                    nSamp = 1000,
-                                    listCov = listCov,
-                                    onlyAdm2 = idxAdm2,
-                                    onlyAdm1 = c(i))
+    synth.tmp = getNigeriaSyntheticLogit(tmpData,
+                                         popList = nigeriaPop,
+                                         nameAdm1 = nameAdm1,
+                                         nSamp = 1000,
+                                         listCov = listCov,
+                                         onlyAdm2 = idxAdm2,
+                                         onlyAdm1 = c(i),
+                                         sepUR = FALSE)
     
     # Extract estimate
-    synthEst.holdOut$admin1.ur[2*(i-1)+c(1,2),] = synth.tmp$admin1.ur[2*(i-1)+c(1,2),]
-    synthEst.holdOut$admin1[i,]                 = synth.tmp$admin1[i,]
+    synthEst.logit1.holdOut$admin1.ur[2*(i-1)+c(1,2),] = synth.tmp$admin1.ur[2*(i-1)+c(1,2),]
+    synthEst.logit1.holdOut$admin1[i,]                 = synth.tmp$admin1[i,]
     for(k in idxAdm2){
-      synthEst.holdOut$admin2[k,]                    = synth.tmp$admin2[k,]
-      synthEst.holdOut$admin2.ur[(k-1)*2+c(1,2),]    = synth.tmp$admin2.ur[(k-1)*2+c(1,2),]
+      synthEst.logit1.holdOut$admin2[k,]                    = synth.tmp$admin2[k,]
+      synthEst.logit1.holdOut$admin2.ur[(k-1)*2+c(1,2),]    = synth.tmp$admin2.ur[(k-1)*2+c(1,2),]
     }
-    synthEst.holdOut$samples$p[i,]    = synth.tmp$samples$p[i,]
-    synthEst.holdOut$samples$pRur[i,] = synth.tmp$samples$pRur[i,]
-    synthEst.holdOut$samples$pUrb[i,] = synth.tmp$samples$pUrb[i,]
-}
+    synthEst.logit1.holdOut$samples$p[i,]    = synth.tmp$samples$p[i,]
+    synthEst.logit1.holdOut$samples$pRur[i,] = synth.tmp$samples$pRur[i,]
+    synthEst.logit1.holdOut$samples$pUrb[i,] = synth.tmp$samples$pUrb[i,]
+  }
+  
+## Synthetic 2: Logit complex
+  print("Computing sythetic estimate (logit2)...")
+  nameAdm1 = c()
+  for(i in 1:774){
+    nameAdm1 = c(nameAdm1, strsplit(nameVec[i], ":")[[1]][1])
+  }
+  synthEst.logit2 = getNigeriaSyntheticLogit(myData,
+                                             popList = nigeriaPop,
+                                             nameAdm1 = nameAdm1,
+                                             nSamp = 1000,
+                                             listCov = listCov,
+                                             sepUR = TRUE)
+  
+  # Compute hold-out estimates
+  synthEst.logit2.holdOut = synthEst.logit2
+  for(i in 1:37){
+    print("Take out region (Synthetic):")
+    print(i)
+    print(Sys.time())
+    
+    # Remove data from region i
+    tmpData = myData
+    idx = as.numeric(myData$admin1Fac) == i
+    tmpData$measles[idx] = NA
+    
+    # Only estimate necessary regions
+    unNameAdm1 = unique(nameAdm1)
+    idxAdm2 = which(nameAdm1 == unNameAdm1[i])
+    
+    # Fit model
+    synth.tmp = getNigeriaSyntheticLogit(tmpData,
+                                         popList = nigeriaPop,
+                                         nameAdm1 = nameAdm1,
+                                         nSamp = 1000,
+                                         listCov = listCov,
+                                         onlyAdm2 = idxAdm2,
+                                         onlyAdm1 = c(i),
+                                         sepUR = TRUE)
+    
+    # Extract estimate
+    synthEst.logit2.holdOut$admin1.ur[2*(i-1)+c(1,2),] = synth.tmp$admin1.ur[2*(i-1)+c(1,2),]
+    synthEst.logit2.holdOut$admin1[i,]                 = synth.tmp$admin1[i,]
+    for(k in idxAdm2){
+      synthEst.logit2.holdOut$admin2[k,]                    = synth.tmp$admin2[k,]
+      synthEst.logit2.holdOut$admin2.ur[(k-1)*2+c(1,2),]    = synth.tmp$admin2.ur[(k-1)*2+c(1,2),]
+    }
+    synthEst.logit2.holdOut$samples$p[i,]    = synth.tmp$samples$p[i,]
+    synthEst.logit2.holdOut$samples$pRur[i,] = synth.tmp$samples$pRur[i,]
+    synthEst.logit2.holdOut$samples$pUrb[i,] = synth.tmp$samples$pUrb[i,]
+  }
+  
+## Synthetic 3: Linear simple
+  print("Computing sythetic estimate (linear1)...")
+  nameAdm1 = c()
+  for(i in 1:774){
+    nameAdm1 = c(nameAdm1, strsplit(nameVec[i], ":")[[1]][1])
+  }
+  synthEst.linear1 = getNigeriaSyntheticLinear(myData,
+                                               popList = nigeriaPop,
+                                               nameAdm1 = nameAdm1,
+                                               nSamp = 1000,
+                                               listCov = listCov,
+                                               sepUR = FALSE)
+  
+  # Compute hold-out estimates
+  synthEst.linear1.holdOut = synthEst.linear1
+  for(i in 1:37){
+    print("Take out region (Synthetic):")
+    print(i)
+    print(Sys.time())
+    
+    # Remove data from region i
+    tmpData = myData
+    idx = as.numeric(myData$admin1Fac) == i
+    tmpData$measles[idx] = NA
+    
+    # Only estimate necessary regions
+    unNameAdm1 = unique(nameAdm1)
+    idxAdm2 = which(nameAdm1 == unNameAdm1[i])
+    
+    # Fit model
+    synth.tmp = getNigeriaSyntheticLinear(tmpData,
+                                          popList = nigeriaPop,
+                                          nameAdm1 = nameAdm1,
+                                          nSamp = 1000,
+                                          listCov = listCov,
+                                          onlyAdm2 = idxAdm2,
+                                          onlyAdm1 = c(i),
+                                          sepUR = FALSE)
+    
+    # Extract estimate
+    synthEst.linear1.holdOut$admin1.ur[2*(i-1)+c(1,2),] = synth.tmp$admin1.ur[2*(i-1)+c(1,2),]
+    synthEst.linear1.holdOut$admin1[i,]                 = synth.tmp$admin1[i,]
+    for(k in idxAdm2){
+      synthEst.linear1.holdOut$admin2[k,]                    = synth.tmp$admin2[k,]
+      synthEst.linear1.holdOut$admin2.ur[(k-1)*2+c(1,2),]    = synth.tmp$admin2.ur[(k-1)*2+c(1,2),]
+    }
+    synthEst.linear1.holdOut$samples$p[i,]    = synth.tmp$samples$p[i,]
+    synthEst.linear1.holdOut$samples$pRur[i,] = synth.tmp$samples$pRur[i,]
+    synthEst.linear1.holdOut$samples$pUrb[i,] = synth.tmp$samples$pUrb[i,]
+  }
+  
+## Synthetic 4: Linear complex
+  print("Computing sythetic estimate (linear2)...")
+  nameAdm1 = c()
+  for(i in 1:774){
+    nameAdm1 = c(nameAdm1, strsplit(nameVec[i], ":")[[1]][1])
+  }
+  synthEst.linear2 = getNigeriaSyntheticLinear(myData,
+                                               popList = nigeriaPop,
+                                               nameAdm1 = nameAdm1,
+                                               nSamp = 1000,
+                                               listCov = listCov,
+                                               sepUR = TRUE)
+  
+  # Compute hold-out estimates
+  synthEst.linear2.holdOut = synthEst.linear2
+  for(i in 1:37){
+    print("Take out region (Synthetic):")
+    print(i)
+    print(Sys.time())
+    
+    # Remove data from region i
+    tmpData = myData
+    idx = as.numeric(myData$admin1Fac) == i
+    tmpData$measles[idx] = NA
+    
+    # Only estimate necessary regions
+    unNameAdm1 = unique(nameAdm1)
+    idxAdm2 = which(nameAdm1 == unNameAdm1[i])
+    
+    # Fit model
+    synth.tmp = getNigeriaSyntheticLinear(tmpData,
+                                          popList = nigeriaPop,
+                                          nameAdm1 = nameAdm1,
+                                          nSamp = 1000,
+                                          listCov = listCov,
+                                          onlyAdm2 = idxAdm2,
+                                          onlyAdm1 = c(i),
+                                          sepUR = TRUE)
+    
+    # Extract estimate
+    synthEst.linear2.holdOut$admin1.ur[2*(i-1)+c(1,2),] = synth.tmp$admin1.ur[2*(i-1)+c(1,2),]
+    synthEst.linear2.holdOut$admin1[i,]                 = synth.tmp$admin1[i,]
+    for(k in idxAdm2){
+      synthEst.linear2.holdOut$admin2[k,]                    = synth.tmp$admin2[k,]
+      synthEst.linear2.holdOut$admin2.ur[(k-1)*2+c(1,2),]    = synth.tmp$admin2.ur[(k-1)*2+c(1,2),]
+    }
+    synthEst.linear2.holdOut$samples$p[i,]    = synth.tmp$samples$p[i,]
+    synthEst.linear2.holdOut$samples$pRur[i,] = synth.tmp$samples$pRur[i,]
+    synthEst.linear2.holdOut$samples$pUrb[i,] = synth.tmp$samples$pUrb[i,]
+  }
 
 ## Intercept + urban/rural
   print("Computing simple model...")
