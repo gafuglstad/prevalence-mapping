@@ -930,7 +930,10 @@ for(cvFold in 1:10){
   # Hold-out state MSE
   mse.fixed = mean((direct.est$p_Med-fixed.holdOut$overD$p_Med)^2)
   mse.smooth = mean((direct.est$p_Med-smooth.direct.holdOut$p_Med)^2)
-  mse.synth  = mean((direct.est$p_Med-synthEst.holdOut$admin1$p_Med)^2)
+  mse.synthLogit1  = mean((direct.est$p_Med-synthEst.logit1.holdOut$admin1$p_Med)^2)
+  mse.synthLogit2  = mean((direct.est$p_Med-synthEst.logit2.holdOut$admin1$p_Med)^2)
+  mse.synthLinear1  = mean((direct.est$p_Med-synthEst.linear1.holdOut$admin1$p_Med)^2)
+  mse.synthLinear2  = mean((direct.est$p_Med-synthEst.linear2.holdOut$admin1$p_Med)^2)
   mse.admin1 = mean((direct.est$p_Med-admin1.bym.holdOut$overD$p_Med)^2)
   mse.admin2 = mean((direct.est$p_Med-admin2.bym.holdOut$overD$p_Med)^2)
   mse.spde = mean((direct.est$p_Med-allLevels.spde.holdOut$overD$p_Med)^2)
@@ -938,26 +941,32 @@ for(cvFold in 1:10){
   
   mse.logit.fixed = mean((logit(direct.est$p_Med)-logit(fixed.holdOut$overD$p_Med))^2)
   mse.logit.smooth = mean((logit(direct.est$p_Med)-logit(smooth.direct.holdOut$p_Med))^2)
-  mse.logit.synth  = mean((logit(direct.est$p_Med)-logit(synthEst.holdOut$admin1$p_Med))^2)
+  mse.logit.synthLogit1  = mean((logit(direct.est$p_Med)-logit(synthEst.logit1.holdOut$admin1$p_Med))^2)
+  mse.logit.synthLogit2  = mean((logit(direct.est$p_Med)-logit(synthEst.logit2.holdOut$admin1$p_Med))^2)
+  mse.logit.synthLinear1  = mean((logit(direct.est$p_Med)-logit(synthEst.linear1.holdOut$admin1$p_Med))^2)
+  mse.logit.synthLinear2  = mean((logit(direct.est$p_Med)-logit(synthEst.linear2.holdOut$admin1$p_Med))^2)
   mse.logit.admin1 = mean((logit(direct.est$p_Med)-logit(admin1.bym.holdOut$overD$p_Med))^2)
   mse.logit.admin2 = mean((logit(direct.est$p_Med)-logit(admin2.bym.holdOut$overD$p_Med))^2)
   mse.logit.spde = mean((logit(direct.est$p_Med)-logit(allLevels.spde.holdOut$overD$p_Med))^2)
   mse.logit.spdeCov = mean((logit(direct.est$p_Med)-logit(allLevels.spdeCov.holdOut$overD$p_Med))^2)
   
-  mse.logit = cbind(mse.logit.fixed, mse.logit.smooth, mse.logit.synth, mse.logit.admin1, mse.logit.admin2, mse.logit.spde, mse.logit.spdeCov)
-  colnames(mse.logit) = c("NoSpace", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  mse.logit = cbind(mse.logit.fixed, mse.logit.smooth, mse.logit.synthLogit1, mse.logit.synthLogit2, mse.logit.synthLinear1, mse.logit.synthLinear2, mse.logit.admin1, mse.logit.admin2, mse.logit.spde, mse.logit.spdeCov)
+  colnames(mse.logit) = c("NoSpace", "Smooth", "S-Logit1", "S-Logit2", "S-Linear1","S-Linear2", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   # Mean absolute error
   mae.logit.fixed = mean(abs(logit(direct.est$p_Med)-logit(fixed.holdOut$overD$p_Med)))
   mae.logit.smooth = mean(abs(logit(direct.est$p_Med)-logit(smooth.direct.holdOut$p_Med)))
-  mae.logit.synth = mean(abs(logit(direct.est$p_Med)-logit(synthEst.holdOut$admin1$p_Med)))
+  mae.logit.synthLogit1 = mean(abs(logit(direct.est$p_Med)-logit(synthEst.logit1.holdOut$admin1$p_Med)))
+  mae.logit.synthLogit2 = mean(abs(logit(direct.est$p_Med)-logit(synthEst.logit2.holdOut$admin1$p_Med)))
+  mae.logit.synthLinear1 = mean(abs(logit(direct.est$p_Med)-logit(synthEst.linear1.holdOut$admin1$p_Med)))
+  mae.logit.synthLinear2 = mean(abs(logit(direct.est$p_Med)-logit(synthEst.linear2.holdOut$admin1$p_Med)))
   mae.logit.admin1 = mean(abs(logit(direct.est$p_Med)-logit(admin1.bym.holdOut$overD$p_Med)))
   mae.logit.admin2 = mean(abs(logit(direct.est$p_Med)-logit(admin2.bym.holdOut$overD$p_Med)))
   mae.logit.spde = mean(abs(logit(direct.est$p_Med)-logit(allLevels.spde.holdOut$overD$p_Med)))
   mae.logit.spdeCov = mean(abs(logit(direct.est$p_Med)-logit(allLevels.spdeCov.holdOut$overD$p_Med)))
   
-  mae.logit = cbind(mae.logit.fixed, mae.logit.smooth, mae.logit.synth, mae.logit.admin1, mae.logit.admin2, mae.logit.spde, mae.logit.spdeCov)
-  colnames(mae.logit) = c("Fixed", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  mae.logit = cbind(mae.logit.fixed, mae.logit.smooth, mae.logit.synthLogit1, mae.logit.synthLogit2, mae.logit.synthLinear1, mae.logit.synthLinear2, mae.logit.admin1, mae.logit.admin2, mae.logit.spde, mae.logit.spdeCov)
+  colnames(mae.logit) = c("Fixed", "Smooth", "S-Logit1", "S-Logit2", "S-Linear1","S-Linear2", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   # Hold-out CRPS
   mu = rowMeans(logit(fixed.holdOut$samples$p.overD))
@@ -970,10 +979,25 @@ for(cvFold in 1:10){
   crps.logit.smooth = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
   ds.logit.smooth = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
   
-  mu = rowMeans(logit(synthEst.holdOut$samples$p))
-  stdDev = sqrt(direct.est$se^2 + apply(logit(synthEst.holdOut$samples$p), 1, var))
-  crps.logit.synth = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
-  ds.logit.synth = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
+  mu = rowMeans(logit(synthEst.logit1.holdOut$samples$p))
+  stdDev = sqrt(direct.est$se^2 + apply(logit(synthEst.logit1.holdOut$samples$p), 1, var))
+  crps.logit1.synth = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
+  ds.logit1.synth = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
+  
+  mu = rowMeans(logit(synthEst.logit2.holdOut$samples$p))
+  stdDev = sqrt(direct.est$se^2 + apply(logit(synthEst.logit2.holdOut$samples$p), 1, var))
+  crps.logit2.synth = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
+  ds.logit2.synth = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
+  
+  mu = rowMeans(logit(synthEst.linear1.holdOut$samples$p))
+  stdDev = sqrt(direct.est$se^2 + apply(logit(synthEst.linear1.holdOut$samples$p), 1, var))
+  crps.linear1.synth = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
+  ds.linear1.synth = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
+  
+  mu = rowMeans(logit(synthEst.linear2.holdOut$samples$p))
+  stdDev = sqrt(direct.est$se^2 + apply(logit(synthEst.llinear2.holdOut$samples$p), 1, var))
+  crps.linear2.synth = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
+  ds.linear2.synth = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
   
   mu = rowMeans(logit(admin1.bym.holdOut$samples$p.overD))
   stdDev = sqrt(direct.est$se^2 + apply(logit(admin1.bym.holdOut$samples$p.overD), 1, var))
@@ -997,46 +1021,61 @@ for(cvFold in 1:10){
   
   crps.logit = cbind(crps.logit.fixed$crps,
                      crps.logit.smooth$crps,
-                     crps.logit.synth$crps,
+                     crps.logit1.synth$crps,
+                     crps.logit2.synth$crps,
+                     crps.linear1.synth$crps,
+                     crps.linear2.synth$crps,
                      crps.logit.admin1$crps,
                      crps.logit.admin2$crps,
                      crps.logit.spde$crps,
                      crps.logit.spdeCov$crps)
-  colnames(crps.logit) = c("NoSpace", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  colnames(crps.logit) = c("NoSpace", "Smooth", "S-Logit1", "S-Logit2", "S-Linear1","S-Linear2", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   ign.logit = cbind(crps.logit.fixed$ign,
                     crps.logit.smooth$ign,
-                    crps.logit.synth$ign,
+                    crps.logit1.synth$ign,
+                    crps.logit2.synth$ign,
+                    crps.linear1.synth$ign,
+                    crps.linear2.synth$ign,
                     crps.logit.admin1$ign,
                     crps.logit.admin2$ign,
                     crps.logit.spde$ign,
                     crps.logit.spdeCov$ign)
-  colnames(ign.logit) = c("NoSpace", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  colnames(ign.logit) = c("NoSpace", "Smooth", "S-Logit1", "S-Logit2", "S-Linear1","S-Linear2", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   ds.logit = cbind(ds.logit.fixed,
                    ds.logit.smooth,
-                   ds.logit.synth,
+                   ds.logit2.synth,
+                   ds.logit2.synth,
+                   ds.linear1.synth,
+                   ds.linear2.synth,
                    ds.logit.admin1,
                    ds.logit.admin2,
                    ds.logit.spde,
                    ds.logit.spdeCov)
-  colnames(ds.logit) = c("NoSpace", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  colnames(ds.logit) = c("NoSpace", "Smooth", "S-Logit1", "S-Logit2", "S-Linear1","S-Linear2", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   cov.noS = sum((fixed.holdOut$overD$p_Low < direct.est$p_Med) & (fixed.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
   cov.smooth = sum((smooth.direct.holdOut$p_Low < direct.est$p_Med) & (smooth.direct.holdOut$p_Upp > direct.est$p_Med))/37*100
-  cov.synth = sum((synthEst.holdOut$admin1$p_Low < direct.est$p_Med) & (synthEst.holdOut$admin1$p_Upp > direct.est$p_Med))/37*100
+  cov.synthLogit1 = sum((synthEst.logit1.holdOut$admin1$p_Low < direct.est$p_Med) & (synthEst.logit1.holdOut$admin1$p_Upp > direct.est$p_Med))/37*100
+  cov.synthLogit2 = sum((synthEst.logit2.holdOut$admin1$p_Low < direct.est$p_Med) & (synthEst.logit2.holdOut$admin1$p_Upp > direct.est$p_Med))/37*100
+  cov.synthLinear1 = sum((synthEst.linear1.holdOut$admin1$p_Low < direct.est$p_Med) & (synthEst.linear1.holdOut$admin1$p_Upp > direct.est$p_Med))/37*100
+  cov.synthLinear2 = sum((synthEst.linear2.holdOut$admin1$p_Low < direct.est$p_Med) & (synthEst.linear2.holdOut$admin1$p_Upp > direct.est$p_Med))/37*100
   cov.a1 = sum((admin1.bym.holdOut$overD$p_Low < direct.est$p_Med) & (admin1.bym.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
   cov.a2 = sum((admin2.bym.holdOut$overD$p_Low < direct.est$p_Med) & (admin2.bym.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
   cov.cont = sum((allLevels.spde.holdOut$overD$p_Low < direct.est$p_Med) & (allLevels.spde.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
   cov.covC = sum((allLevels.spdeCov.holdOut$overD$p_Low < direct.est$p_Med) & (allLevels.spdeCov.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
   coverAdm1 = cbind(cov.noS,
                     cov.smooth,
-                    cov.synth,
+                    cov.synthLogit1,
+                    cov.synthLogit2,
+                    cov.synthLinear1,
+                    cov.synthLinear2,
                     cov.a1,
                     cov.a2,
                     cov.cont,
                     cov.covC)
-  colnames(coverAdm1) = colnames(ds.logit) = c("NoSpace", "Smooth", "Synthetic", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
+  colnames(coverAdm1) = colnames(ds.logit) = c("NoSpace", "Smooth", "S-Logit1", "S-Logit2", "S-Linear1","S-Linear2", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   # Full table
   scores.logit = rbind(mse.logit, mae.logit, colMeans(crps.logit), colMeans(ign.logit), ds.logit, coverAdm1)
