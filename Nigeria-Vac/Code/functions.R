@@ -85,11 +85,11 @@ getNigeriaSyntheticLogit = function(myData, popList, nameAdm1, nSamp = 1000, onl
     
     # Fit GLM
     if(!sepUR){
-      syntGLM.res = svyglm(measles~urban + poverty+lAccess,
+      syntGLM.res = svyglm(measles~urbanDummy + poverty+lAccess,
                            design = my.svydesign,
                            family = quasibinomial())
     }else{
-      syntGLM.res = svyglm(measles~urban + poverty*urban+lAccess*urban,
+      syntGLM.res = svyglm(measles~urbanDummy + poverty*urbanDummy+lAccess*urbanDummy,
                            design = my.svydesign,
                            family = quasibinomial())
     }
@@ -254,10 +254,10 @@ getNigeriaSyntheticLinear = function(myData, popList, nameAdm1, nSamp = 1000, on
   
   # Fit GLM
   if(!sepUR){
-    syntGLM.res = svyglm(measles~urban + poverty+lAccess,
+    syntGLM.res = svyglm(measles~urbanDummy + poverty+lAccess,
                          design = my.svydesign)
   }else{
-    syntGLM.res = svyglm(measles~urban + poverty*urban+lAccess*urban,
+    syntGLM.res = svyglm(measles~urbanDummy + poverty*urbanDummy+lAccess*urbanDummy,
                          design = my.svydesign)
   }
   
