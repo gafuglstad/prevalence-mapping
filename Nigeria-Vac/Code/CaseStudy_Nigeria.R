@@ -165,7 +165,8 @@
     # Save
     save(file = "../Data/Nigeria_AGG_DHS/preparedDHSdata.RData", myData)
   } # END NOT-RUN
-  #load("../Data/Nigeria_AGG_DHS/DONOTCOMMIT_preparedDHSdata.RData"
+  # TODO: Take this away
+  load("../Data/Nigeria_AGG_DHS/DONOTCOMMIT_preparedDHSdata.RData")
   
 ## Make figure for Section 2
   # Make figure
