@@ -464,7 +464,7 @@ getFixedLGM = function(myData, clustPrior){
 }
 
 # Compute areal BYM model
-getAreaLGM = function(myData, nigeriaGraph, bym2prior, clustPrior, admin2 = FALSE, space = TRUE, covarModel = TRUE){
+getAreaLGM = function(myData, nigeriaGraph, bym2prior, clustPrior, admin2 = FALSE, space = TRUE, covarModel = FALSE){
   # Introduce dummy variable
   myData$urbanDummy = (myData$urban == "U")+0
   
