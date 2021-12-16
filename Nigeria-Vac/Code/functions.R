@@ -464,43 +464,94 @@ getFixedLGM = function(myData, clustPrior){
 }
 
 # Compute areal BYM model
-getAreaLGM = function(myData, nigeriaGraph, bym2prior, clustPrior, admin2 = FALSE, space = TRUE){
+getAreaLGM = function(myData, nigeriaGraph, bym2prior, clustPrior, admin2 = FALSE, space = TRUE, covarModel = TRUE){
+  # Introduce dummy variable
+  myData$urbanDummy = (myData$urban == "U")+0
+  
   # Formula
   if(!admin2){
     if(space){
-      formula = measles ~ urban + f(as.numeric(admin1Fac), 
-                                    model = "bym2",
-                                    graph = nigeriaGraph,
-                                    scale.model = TRUE,
-                                    hyper = bym2prior) + 
-        f(clusterIdx,
-          model = "iid",
-          hyper = clustPrior)
+      if(covarModel){
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + 
+          f(as.numeric(admin1Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }else{
+        formula = measles ~ urbanDummy + 
+          f(as.numeric(admin1Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
     }else{
-      formula = measles ~ urban + f(as.numeric(admin1Fac), 
-                                    model = "iid",
-                                    hyper = bym2prior) + 
-        f(clusterIdx,
-          model = "iid",
-          hyper = clustPrior)
+      if(covarModel){
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy +
+          f(as.numeric(admin1Fac),
+            model = "iid",
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }else{
+        formula = measles ~ urbanDummy +
+          f(as.numeric(admin1Fac),
+            model = "iid",
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
     }
   }else{
     if(space){
-      formula = measles ~ urban + f(as.numeric(admin2Fac), 
-                                    model = "bym2",
-                                    graph = nigeriaGraph,
-                                    scale.model = TRUE,
-                                    hyper = bym2prior) + 
-        f(clusterIdx,
-          model = "iid",
-          hyper = clustPrior)
+      if(covarModel){
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + 
+          f(as.numeric(admin2Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }else{
+        formula = measles ~ urbanDummy + 
+          f(as.numeric(admin2Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
     }else{
-      formula = measles ~ urban + f(as.numeric(admin2Fac), 
-                                    model = "iid",
-                                    hyper = bym2prior) + 
-        f(clusterIdx,
-          model = "iid",
-          hyper = clustPrior)
+      if(covarModel){
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy +
+          f(as.numeric(admin2Fac),
+            model = "iid",
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }else{
+        formula = measles ~ urbanDummy +
+          f(as.numeric(admin2Fac),
+            model = "iid",
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
     }
   }
   
