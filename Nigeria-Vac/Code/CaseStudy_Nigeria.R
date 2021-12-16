@@ -165,6 +165,7 @@
     # Save
     save(file = "../Data/Nigeria_AGG_DHS/preparedDHSdata.RData", myData)
   } # END NOT-RUN
+  #load("../Data/Nigeria_AGG_DHS/DONOTCOMMIT_preparedDHSdata.RData"
   
 ## Make figure for Section 2
   # Make figure
@@ -253,6 +254,7 @@
   ## Unit-level models: No area-level effects ##
   ##############################################
     # Covariates + cluster effect
+    print("Unit-level: Covariates + cluster")
     iidPrior  = list(prec = list(prior = "pc.prec",
                                  param = c(1, 0.05)))
     res.noSpace.cov = runUnitLevel(myData = myData,
@@ -268,6 +270,7 @@
     ## Unit-level models: iid admin1 + No covariates ##
     ###################################################
       # Intercept + IID(admin1) + cluster effect
+      print("Unit-level: Intercept + IID(admin1) + cluster")
       iidPrior  = list(prec = list(prior = "pc.prec",
                                    param = c(1, 0.05)))
       res.admin1.iid.noCov = runUnitLevel(myData = myData,
@@ -281,6 +284,7 @@
     ## Unit-level models: BYM admin1 + No covariates ##
     ###################################################
       # Intercept + BYM2(admin1) + cluster effect
+      print("Unit-level: Intercept + BYM2(admin1) + cluster")
       iidPrior  = list(prec = list(prior = "pc.prec",
                                    param = c(1, 0.05)))
       bym2prior = list(prec = list(param = c(1, 0.05)),
@@ -297,6 +301,7 @@
     ## Unit-level models: iid admin1 + Covariates ##
     ################################################
       # Covariates + IID(admin1) + cluster effect
+      print("Unit-level: Covariates + IID(admin1) + cluster")
       iidPrior  = list(prec = list(prior = "pc.prec",
                                    param = c(1, 0.05)))
       res.admin1.iid.cov = runUnitLevel(myData = myData,
@@ -311,6 +316,7 @@
     ## Unit-level models: BYM admin1 + Covariates ##
     ################################################
       # Covariates + BYM(admin1) + cluster effect
+      print("Unit-level: Covariates + BYM(admin1) + cluster")
       iidPrior  = list(prec = list(prior = "pc.prec",
                                    param = c(1, 0.05)))
       bym2prior = list(prec = list(param = c(1, 0.05)),
@@ -330,6 +336,7 @@
     ## Unit-level models: BYM admin1 + No covariates ##
     ###################################################
       # Intercept + BYM2(admin2) + cluster effect
+      print("Unit-level: Intercept + BYM2(admin2) + cluster")
       iidPrior  = list(prec = list(prior = "pc.prec",
                                    param = c(1, 0.05)))
       bym2prior = list(prec = list(param = c(1, 0.05)),
@@ -346,6 +353,7 @@
     ## Unit-level models: BYM admin1 + Covariates ##
     ################################################
       # Covariates + BYM(admin2) + cluster effect
+      print("Unit-level: Covariates + BYM2(admin2) + cluster")
       iidPrior  = list(prec = list(prior = "pc.prec",
                                    param = c(1, 0.05)))
       bym2prior = list(prec = list(param = c(1, 0.05)),
@@ -407,265 +415,6 @@
       fixed.holdOut$clustSum$cInf[idx,] = inla.fixed.tmp$summary.linear.predictor[idx,]
       
       fixed.holdOutMarginals[idx] = inla.fixed.tmp$marginals.linear.predictor[idx]
-    }
-
-################################################################################
-## Admin1 Models ###############################################################
-################################################################################
-  ##############################################################################
-  ## Spatial admin1 Models #####################################################
-  ##############################################################################
-    ## BYM on admin1
-      print("Computing BYM on admin1...")
-      # Set priors
-      bym2prior = list(prec = list(param = c(1, 0.05)),
-                       phi  = list(param = c(0.5, 0.5)))
-      iidPrior  = list(prec = list(prior = "pc.prec",
-                                   param = c(1, 0.05)))
-      
-      # Compute full estimate
-      inla.admin1 = getAreaLGM(myData = myData,
-                               nigeriaGraph = nigeriaGraph_admin1,
-                               bym2prior = bym2prior,
-                               clustPrior = iidPrior)
-      
-      # Calculate estimates
-      admin1.bym = aggBYM_admin1(res.inla = inla.admin1,
-                                 popList = nigeriaPop,
-                                 myData = myData,
-                                 nSamp = 1000)
-      admin1.bym$clustSum = list(cIdx = myData$clusterIdx,
-                                 cInf = inla.admin1$summary.linear.predictor)
-      
-      # Compute hold-out estimates
-      admin1.bym.holdOut = admin1.bym
-      admin1.bym.holdOutMarginals = inla.admin1$marginals.linear.predictor[1:nrow(myData)]
-      for(i in 1:length(admin1.bym$meas$admin1)){
-        print("Take out region (admin1):")
-        print(i)
-        # Remove data from region i
-        tmpData = myData
-        idx = as.numeric(myData$admin1Fac) == i
-        tmpData$measles[idx] = NA
-        
-        # Fit model
-        inla.admin1.tmp = getAreaLGM(myData = tmpData,
-                                     nigeriaGraph = nigeriaGraph_admin1,
-                                     bym2prior = bym2prior,
-                                     clustPrior = iidPrior)
-        admin1.bym.tmp = aggBYM_admin1(res.inla = inla.admin1.tmp,
-                                       popList = nigeriaPop,
-                                       myData = tmpData,
-                                       nSamp = 1000)
-        
-        # Extract estimate
-        admin1.bym.holdOut$meas.ur[(i-1)*2+c(1,2),]  = admin1.bym.tmp$meas.ur[(i-1)*2+c(1,2),]
-        admin1.bym.holdOut$meas[i,]     = admin1.bym.tmp$meas[i,]
-        admin1.bym.holdOut$real.ur[(i-1)*2+c(1,2),]  = admin1.bym.tmp$real.ur[(i-1)*2+c(1,2),]
-        admin1.bym.holdOut$real[i,]     = admin1.bym.tmp$real[i,]
-        admin1.bym.holdOut$overD.ur[(i-1)*2+c(1,2),] = admin1.bym.tmp$overD.ur[(i-1)*2+c(1,2),]
-        admin1.bym.holdOut$overD[i,]    = admin1.bym.tmp$overD[i,]
-        admin1.bym.holdOut$samples$p.overD[i,] = admin1.bym.tmp$samples$p.overD[i,]
-        admin1.bym.holdOut$samples$pRur.overD[i,] = admin1.bym.tmp$samples$pRur.overD[i,]
-        admin1.bym.holdOut$samples$pUrb.overD[i,] = admin1.bym.tmp$samples$pUrb.overD[i,]
-        
-        admin1.bym.holdOut$clustSum$cInf[idx,] = inla.admin1.tmp$summary.linear.predictor[idx,]
-        
-        admin1.bym.holdOutMarginals[idx] = inla.admin1.tmp$marginals.linear.predictor[idx]
-      }
-      
-    ## BYM+Cov on admin1
-      print("Computing BYM+cov on admin1...")
-      # Set priors
-      bym2prior = list(prec = list(param = c(1, 0.05)),
-                       phi  = list(param = c(0.5, 0.5)))
-      iidPrior  = list(prec = list(prior = "pc.prec",
-                                   param = c(1, 0.05)))
-      
-      # Compute full estimate
-      inla.admin1.bymCov = getAreaLGM(myData = myData,
-                                      nigeriaGraph = nigeriaGraph_admin1,
-                                      bym2prior = bym2prior,
-                                      clustPrior = iidPrior,
-                                      covarModel = TRUE)
-      
-      # Calculate estimates
-      admin1.bymCov = aggBYM_admin1(res.inla = inla.admin1.bymCov,
-                                    popList = nigeriaPop,
-                                    myData = myData,
-                                    nSamp = 1000)
-      admin1.bymCov$clustSum = list(cIdx = myData$clusterIdx,
-                                    cInf = inla.admin1$summary.linear.predictor)
-      
-      # Compute hold-out estimates
-      admin1.bymCov.holdOut = admin1.bymCov
-      admin1.bymCov.holdOutMarginals = inla.admin1.bymCov$marginals.linear.predictor[1:nrow(myData)]
-      for(i in 1:length(admin1.bymCov$meas$admin1)){
-        print("Take out region (admin1):")
-        print(i)
-        # Remove data from region i
-        tmpData = myData
-        idx = as.numeric(myData$admin1Fac) == i
-        tmpData$measles[idx] = NA
-        
-        # Fit model
-        inla.admin1.tmp = getAreaLGM(myData = tmpData,
-                                     nigeriaGraph = nigeriaGraph_admin1,
-                                     bym2prior = bym2prior,
-                                     clustPrior = iidPrior,
-                                     covarModel = TRUE)
-        admin1.bymCov.tmp = aggBYM_admin1(res.inla = inla.admin1.tmp,
-                                       popList = nigeriaPop,
-                                       myData = tmpData,
-                                       nSamp = 1000)
-        
-        # Extract estimate
-        admin1.bymCov.holdOut$meas.ur[(i-1)*2+c(1,2),]  = admin1.bymCov.tmp$meas.ur[(i-1)*2+c(1,2),]
-        admin1.bymCov.holdOut$meas[i,]     = admin1.bymCov.tmp$meas[i,]
-        admin1.bymCov.holdOut$real.ur[(i-1)*2+c(1,2),]  = admin1.bymCov.tmp$real.ur[(i-1)*2+c(1,2),]
-        admin1.bymCov.holdOut$real[i,]     = admin1.bymCov.tmp$real[i,]
-        admin1.bymCov.holdOut$overD.ur[(i-1)*2+c(1,2),] = admin1.bymCov.tmp$overD.ur[(i-1)*2+c(1,2),]
-        admin1.bymCov.holdOut$overD[i,]    = admin1.bymCov.tmp$overD[i,]
-        admin1.bymCov.holdOut$samples$p.overD[i,] = admin1.bymCov.tmp$samples$p.overD[i,]
-        admin1.bymCov.holdOut$samples$pRur.overD[i,] = admin1.bymCov.tmp$samples$pRur.overD[i,]
-        admin1.bymCov.holdOut$samples$pUrb.overD[i,] = admin1.bymCov.tmp$samples$pUrb.overD[i,]
-        
-        admin1.bymCov.holdOut$clustSum$cInf[idx,] = inla.admin1.tmp$summary.linear.predictor[idx,]
-        
-        admin1.bymCov.holdOutMarginals[idx] = inla.admin1.tmp$marginals.linear.predictor[idx]
-      }
-      
-  ## IID on admin1
-    print("Computing IID on admin1...")
-    # Set priors
-    iidPrior  = list(prec = list(prior = "pc.prec",
-                                 param = c(1, 0.05)))
-    
-    # Compute full estimate
-    inla.admin1.iid = getAreaLGM(myData = myData,
-                             nigeriaGraph = nigeriaGraph_admin1,
-                             bym2prior = iidPrior,
-                             clustPrior = iidPrior,
-                             space = FALSE)
-    
-    # Calculate estimates
-    admin1.iid = aggBYM_admin1(res.inla = inla.admin1.iid,
-                               popList = nigeriaPop,
-                               myData = myData,
-                               nSamp = 1000)
-    admin1.iid$clustSum = list(cIdx = myData$clusterIdx,
-                               cInf = inla.admin1.iid$summary.linear.predictor)
-    
-    # Compute hold-out estimates
-    admin1.iid.holdOut = admin1.iid
-    admin1.iid.holdOutMarginals = inla.admin1.iid$marginals.linear.predictor[1:nrow(myData)]
-    for(i in 1:length(admin1.iid$meas$admin1)){
-      print("Take out region (admin1):")
-      print(i)
-      # Remove data from region i
-      tmpData = myData
-      idx = as.numeric(myData$admin1Fac) == i
-      tmpData$measles[idx] = NA
-      
-      # Fit model
-      inla.admin1.tmp = getAreaLGM(myData = tmpData,
-                                   nigeriaGraph = nigeriaGraph_admin1,
-                                   bym2prior = iidPrior,
-                                   clustPrior = iidPrior,
-                                   space = FALSE)
-      admin1.iid.tmp = aggBYM_admin1(res.inla = inla.admin1.tmp,
-                                     popList = nigeriaPop,
-                                     myData = tmpData,
-                                     nSamp = 1000,
-                                     space = FALSE)
-      
-      # Extract estimate
-      admin1.iid.holdOut$meas.ur[(i-1)*2+c(1,2),]  = admin1.iid.tmp$meas.ur[(i-1)*2+c(1,2),]
-      admin1.iid.holdOut$meas[i,]     = admin1.iid.tmp$meas[i,]
-      admin1.iid.holdOut$real.ur[(i-1)*2+c(1,2),]  = admin1.iid.tmp$real.ur[(i-1)*2+c(1,2),]
-      admin1.iid.holdOut$real[i,]     = admin1.iid.tmp$real[i,]
-      admin1.iid.holdOut$overD.ur[(i-1)*2+c(1,2),] = admin1.iid.tmp$overD.ur[(i-1)*2+c(1,2),]
-      admin1.iid.holdOut$overD[i,]    = admin1.iid.tmp$overD[i,]
-      admin1.iid.holdOut$samples$p.overD[i,] = admin1.iid.tmp$samples$p.overD[i,]
-      admin1.iid.holdOut$samples$pRur.overD[i,] = admin1.iid.tmp$samples$pRur.overD[i,]
-      admin1.iid.holdOut$samples$pUrb.overD[i,] = admin1.iid.tmp$samples$pUrb.overD[i,]
-      
-      admin1.iid.holdOut$clustSum$cInf[idx,] = inla.admin1.tmp$summary.linear.predictor[idx,]
-      
-      admin1.iid.holdOutMarginals[idx] = inla.admin1.tmp$marginals.linear.predictor[idx]
-    }
-
-################################################################################
-## Admin2 Models ###############################################################
-################################################################################
-    print("Computing BYM on admin2...")
-    # Set priors
-    bym2prior = list(prec = list(param = c(1, 0.05)),
-                     phi  = list(param = c(0.5, 0.5)))
-    iidPrior  = list(prec = list(prior = "pc.prec",
-                                 param = c(1, 0.05)))
-    
-    # Compute full estimate
-    inla.admin2 = getAreaLGM(myData = myData,
-                             nigeriaGraph = nigeriaGraph,
-                             bym2prior = bym2prior,
-                             clustPrior = iidPrior,
-                             admin2 = TRUE)
-    
-    # Calculate estimates
-    nameAdm1 = c()
-    for(i in 1:774){
-      nameAdm1 = c(nameAdm1, strsplit(nameVec[i], ":")[[1]][1])
-    }
-    admin2.bym = aggBYM_admin2(res.inla = inla.admin2,
-                               popList = nigeriaPop,
-                               nameAdm1 = nameAdm1,
-                               myData = myData,
-                               nSamp = 1000)
-    admin2.bym$clustSum = list(cIdx = myData$clusterIdx,
-                               cInf = inla.admin2$summary.linear.predictor)
-    
-    # Compute hold-out estimates
-    admin2.bym.holdOut = admin2.bym
-    admin2.bym.holdOutMarginals = inla.admin2$marginals.linear.predictor[1:nrow(myData)]
-    for(i in 1:37){
-      print("Take out region (admin2):")
-      print(i)
-      print(Sys.time())
-      # Remove data from region i
-      tmpData = myData
-      idx = as.numeric(myData$admin1Fac) == i
-      tmpData$measles[idx] = NA
-      
-      # Fit model
-      inla.admin2.tmp = getAreaLGM(myData = tmpData,
-                                   nigeriaGraph = nigeriaGraph,
-                                   bym2prior = bym2prior,
-                                   clustPrior = iidPrior,
-                                   admin2 = TRUE)
-      admin2.bym.tmp = aggBYM_admin2(res.inla = inla.admin2.tmp,
-                                     popList = nigeriaPop,
-                                     nameAdm1 = nameAdm1,
-                                     myData = tmpData,
-                                     nSamp = 1000)
-      
-      # Wich admin2 have been observed
-      unNameAdm1 = unique(nameAdm1)
-      idxAdm2 = which(nameAdm1 == unNameAdm1[i])
-      
-      # Extract estimate
-      admin2.bym.holdOut$overD.ur[(i-1)*2+c(1,2),]        = admin2.bym.tmp$overD.ur[(i-1)*2+c(1,2),]
-      admin2.bym.holdOut$overD[i,]           = admin2.bym.tmp$overD[i,]
-      for(k in idxAdm2){
-        admin2.bym.holdOut$admin2.overD[k,]    = admin2.bym.tmp$admin2.overD[k,]
-        admin2.bym.holdOut$admin2.overD.ur[(k-1)*2+c(1,2),] = admin2.bym.tmp$admin2.overD.ur[(k-1)*2+c(1,2),]
-      }
-      admin2.bym.holdOut$samples$p.overD[i,] = admin2.bym.tmp$samples$p.overD[i,]
-      admin2.bym.holdOut$samples$pRur.overD[i,] = admin2.bym.tmp$samples$pRur.overD[i,]
-      admin2.bym.holdOut$samples$pUrb.overD[i,] = admin2.bym.tmp$samples$pUrb.overD[i,]
-      
-      admin2.bym.holdOut$clustSum$cInf[idx,] = inla.admin2.tmp$summary.linear.predictor[idx,]
-      admin2.bym.holdOutMarginals[idx] = inla.admin2.tmp$marginals.linear.predictor[idx]
     }
 
 ################################################################################
@@ -833,10 +582,8 @@
       allLevels.spdeCov.holdOut$clustSum$cInf[idxNum,] = inla.spdeCov.tmp$summary.linear.predictor[idxNum,]
       spdeCov.holdOutMarginals[idxNum] = inla.spdeCov.tmp$marginals.linear.predictor[idxNum]
     }
-  
-  
-  
-  
+    
+save.image("ModelsHaveBeenRun.RData")
 
 ## 10-fold cross validation
 newData = data.frame(cIdx = unique(myData$clusterIdx))
