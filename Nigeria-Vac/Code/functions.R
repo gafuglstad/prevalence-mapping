@@ -831,7 +831,7 @@ aggFixed = function(res.inla, popList, myData, nSamp = 1000){
 
 
 # Aggregate on Admin1 level
-aggBYM_admin1 = function(res.inla, popList, myData, nSamp = 1000){
+aggBYM_admin1 = function(res.inla, popList, myData, nSamp = 1000, space = TRUE){
   # Draw posterior samples
   post.sample = inla.posterior.sample(n = nSamp, result = res.inla)
   
@@ -882,6 +882,10 @@ aggBYM_admin1 = function(res.inla, popList, myData, nSamp = 1000){
   
   # Sample urban and rural
   nugSimStd = rnorm(1e5, mean = 0, sd = 1)
+  nuggetIdx = 3
+  if(!space){
+    nuggetIdx = 2
+  }
   for(i in 1:dim(etaUrb.meas)[1]){
     for(j in 1:37){
       # Nugget is measurement error
@@ -889,13 +893,13 @@ aggBYM_admin1 = function(res.inla, popList, myData, nSamp = 1000){
       etaRur.meas[i,j] = post.sample[[i]]$latent[intIdx] + post.sample[[i]]$latent[spatIdx + j-1]
       
       # Nugget is real
-      nugSimUrb = rnorm(clustNumUrb[j], mean = 0, sd = 1/sqrt(post.sample[[i]]$hyperpar[3]))
-      nugSimRur = rnorm(clustNumRur[j], mean = 0, sd = 1/sqrt(post.sample[[i]]$hyperpar[3]))
+      nugSimUrb = rnorm(clustNumUrb[j], mean = 0, sd = 1/sqrt(post.sample[[i]]$hyperpar[nuggetIdx]))
+      nugSimRur = rnorm(clustNumRur[j], mean = 0, sd = 1/sqrt(post.sample[[i]]$hyperpar[nuggetIdx]))
       etaUrb.real[i,j] = logit(mean(expit(etaUrb.meas[i,j] + nugSimUrb)))
       etaRur.real[i,j] = logit(mean(expit(etaRur.meas[i,j] + nugSimRur)))
       
       # Nugget is overdispersion
-      cSD = 1/sqrt(post.sample[[i]]$hyperpar[3])
+      cSD = 1/sqrt(post.sample[[i]]$hyperpar[nuggetIdx])
       etaUrb.overD[i,j] = logit(mean(expit(etaUrb.meas[i,j] + nugSimStd*cSD)))
       etaRur.overD[i,j] = logit(mean(expit(etaRur.meas[i,j] + nugSimStd*cSD)))
     }
@@ -1013,7 +1017,7 @@ aggBYM_admin1 = function(res.inla, popList, myData, nSamp = 1000){
 
 
 # Aggregate on Admin2 level
-aggBYM_admin2 = function(res.inla, popList, nameAdm1, myData, nSamp = 1000){
+aggBYM_admin2 = function(res.inla, popList, nameAdm1, myData, nSamp = 1000, space = TRUE){
   # Draw posterior samples
   post.sample = inla.posterior.sample(n = nSamp, result = res.inla)
   
@@ -1028,6 +1032,10 @@ aggBYM_admin2 = function(res.inla, popList, nameAdm1, myData, nSamp = 1000){
   urbIdx  = res.inla$misc$configs$contents$start[5]
   
   # Sample urban and rural
+  nuggetIdx = 3
+  if(!space){
+    nuggetIdx = 2
+  }
   nugSimStd = rnorm(1e5, mean = 0, sd = 1)
   for(i in 1:dim(etaUrb.overD)[1]){
     for(j in 1:774){
@@ -1036,7 +1044,7 @@ aggBYM_admin2 = function(res.inla, popList, nameAdm1, myData, nSamp = 1000){
       etaRur.tmp = post.sample[[i]]$latent[intIdx] + post.sample[[i]]$latent[spatIdx + j-1]
       
       # Nugget is overdispersion
-      cSD = 1/sqrt(post.sample[[i]]$hyperpar[3])
+      cSD = 1/sqrt(post.sample[[i]]$hyperpar[nuggetIdx])
       etaUrb.overD[i,j] = logit(mean(expit(etaUrb.tmp + nugSimStd*cSD)))
       etaRur.overD[i,j] = logit(mean(expit(etaRur.tmp + nugSimStd*cSD)))
     }
