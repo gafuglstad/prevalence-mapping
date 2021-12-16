@@ -995,7 +995,7 @@ for(cvFold in 1:10){
   ds.linear1.synth = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
   
   mu = rowMeans(logit(synthEst.linear2.holdOut$samples$p))
-  stdDev = sqrt(direct.est$se^2 + apply(logit(synthEst.llinear2.holdOut$samples$p), 1, var))
+  stdDev = sqrt(direct.est$se^2 + apply(logit(synthEst.linear2.holdOut$samples$p), 1, var))
   crps.linear2.synth = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
   ds.linear2.synth = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
   
