@@ -1580,9 +1580,11 @@ aggUnitLevel = function(res.inla,
   post.sample = inla.posterior.sample(n = nSamp, result = res.inla)
   
   # Extract covariate effects
-  covIdx = res.inla$misc$configs$contents$start[-(1:3)]
   if(randEff != "none"){
+    covIdx = res.inla$misc$configs$contents$start[-(1:3)]
     spaceIdx = res.inla$misc$configs$contents$start[2] + (0:(numAreas-1))
+  }else{
+    covIdx = res.inla$misc$configs$contents$start[-(1:2)]
   }
   covSample = matrix(NA, nrow = length(covIdx), ncol = nSamp)
   spaceSample = matrix(NA, nrow = length(spaceIdx), ncol = nSamp)

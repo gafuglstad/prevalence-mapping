@@ -183,7 +183,8 @@
 ## Extract populations and urban/rural
   print("Extracting populations...")
   nigeriaPop = getPop(myData, sampleFrame = sampleFrame)
-  #save.image('slowPreprocess.RData')
+save.image("Partial_Population.RData")
+
 
 ## Extract covariates
   print("Extracting covariates")
@@ -202,7 +203,7 @@
   listCov = list()
   listCov[[1]] = povertyCov
   listCov[[2]] = accessCov
-  
+save.image("Partial_Covariates.RData")  
 ################################################################################
 ## Direct estimates ############################################################
 ################################################################################
@@ -228,7 +229,7 @@
   
   # Run model+holdout
   res.SmoothDirect = runSmoothDirect(myData, nigeriaGraph_admin1, direct.est)
-
+save.image("Partial_DirectSmooth.RData")
 ################################################################################
 ## Synthetic estimates #########################################################
 ################################################################################
@@ -247,7 +248,7 @@
   ## Synthetic 4: Linear complex
     print("Computing sythetic estimate (linear2)...")
     res.synthLinear2 = runSynthLogit(myData, nigeriaPop, nameVec, nSamp = 1000, listCov, sepUR = TRUE)
-    
+save.image("Partial_Synth.RData")    
 #######################
 ## Unit-level models ##
 #######################
@@ -417,7 +418,7 @@
       
       fixed.holdOutMarginals[idx] = inla.fixed.tmp$marginals.linear.predictor[idx]
     }
-
+save.image("Partial_UnitLevel.RData")
 ################################################################################
 ## GRF Models ##################################################################
 ################################################################################
@@ -584,7 +585,7 @@
       spdeCov.holdOutMarginals[idxNum] = inla.spdeCov.tmp$marginals.linear.predictor[idxNum]
     }
     
-save.image("ModelsHaveBeenRun.RData")
+save.image("Partial_SPDE.RData")
 
 ## 10-fold cross validation
 newData = data.frame(cIdx = unique(myData$clusterIdx))
