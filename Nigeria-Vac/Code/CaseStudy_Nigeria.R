@@ -594,7 +594,8 @@
     admin1.iid.tmp = aggBYM_admin1(res.inla = inla.admin1.tmp,
                                    popList = nigeriaPop,
                                    myData = tmpData,
-                                   nSamp = 1000)
+                                   nSamp = 1000,
+                                   space = FALSE)
     
     # Extract estimate
     admin1.iid.holdOut$meas.ur[(i-1)*2+c(1,2),]  = admin1.iid.tmp$meas.ur[(i-1)*2+c(1,2),]
