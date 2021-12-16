@@ -464,21 +464,29 @@ getFixedLGM = function(myData, clustPrior){
 }
 
 # Compute areal BYM model
-getAreaLGM = function(myData, nigeriaGraph, bym2prior, clustPrior, admin2 = FALSE){
+getAreaLGM = function(myData, nigeriaGraph, bym2prior, clustPrior, admin2 = FALSE, space = TRUE){
+  # Choose IID or BYM
+  if(space){
+    modelString = "bym2"
+  } else{
+    modelString = "iid"
+  }
   # Formula
   if(!admin2){
     formula = measles ~ urban + f(as.numeric(admin1Fac), 
-                                  model = "bym2",
+                                  model = modelString,
                                   graph = nigeriaGraph,
-                                  scale.model = TRUE) + 
+                                  scale.model = TRUE,
+                                  hyper = bym2prior) + 
       f(clusterIdx,
         model = "iid",
         hyper = clustPrior)
   }else{
     formula = measles ~ urban + f(as.numeric(admin2Fac), 
-                                  model = "bym2",
+                                  model = modelString,
                                   graph = nigeriaGraph,
-                                  scale.model = TRUE) +
+                                  scale.model = TRUE,
+                                  hyper = bym2prior) +
       f(clusterIdx,
         model = "iid",
         hyper = clustPrior)
