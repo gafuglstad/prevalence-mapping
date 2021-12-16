@@ -1572,15 +1572,19 @@ aggUnitLevel = function(res.inla,
                         listCov = NULL,
                         numAreas,
                         randEff,
-                        covarModel){
+                        covarModel,
+                        adm2Toadm1,
+                        areaIsAdmin2 = FALSE){
   ## Step 1: Extract posterior samples of quantities of interest
   # Sample from inla object
   post.sample = inla.posterior.sample(n = nSamp, result = res.inla)
   
   # Extract covariate effects
   covIdx = res.inla$misc$configs$contents$start[-(1:3)]
-  spaceIdx = res.inla$misc$configs$contents$start[2] + (0:(numAreas-1))
-  covSample = matrix(NA, length(covIdx), ncol = nSamp)
+  if(randEff != "none"){
+    spaceIdx = res.inla$misc$configs$contents$start[2] + (0:(numAreas-1))
+  }
+  covSample = matrix(NA, nrow = length(covIdx), ncol = nSamp)
   spaceSample = matrix(NA, nrow = length(spaceIdx), ncol = nSamp)
   clustSD = matrix(NA, nrow = 1, ncol = nSamp)
   
@@ -1588,128 +1592,125 @@ aggUnitLevel = function(res.inla,
     nugIdx = 3
   } else if(randEff == "iid"){
     nugIdx = 2
-  } else{
+  } else if(randEff == "none"){
     nugIdx = 1
+  } else{
+    error('Invalid randEff')
   }
   for(i in 1:nSamp){
     clustSD[1,i] = 1/sqrt(post.sample[[i]]$hyperpar[nugIdx])
     covSample[,i] = post.sample[[i]]$latent[covIdx]
-    spaceSample[,i] = post.sample[[i]]$latent[spaceIdx]
+    if(randEff != "none"){
+      spaceSample[,i] = post.sample[[i]]$latent[spaceIdx]
+    }
   }
   
   ## Step 2: Admin2 samples
-  # Iterate through admin2 areas
-  admin2 = matrix(NA, nrow = 774, ncol = nSamp)
-  admin2.urb = matrix(NA, nrow = 774, ncol = nSamp)
-  admin2.rur = matrix(NA, nrow = 774, ncol = nSamp)
-  for(i in 1:774){
-    if(!(i%in%onlyAdm2)){
-      next
-    }
-    # Urban indicies & cell numbers from raster
-    idxUrb = popList$idxUrb[[i]]
-    cellNum = popList$popAdm2.2018[[i]][[1]][,1]
-    
-    # Get x and y coordinates
-    pop2018 = raster("../Data/Nigeria_pop/nga_ppp_2018_UNadj.tif")
-    xyCor = xyFromCell(pop2018, cell = cellNum)
-    
-    # Get covariate values
-    Xdesign = cbind(1, idxUrb+0)
-    if(covarModel){
-      tmpDesign = raster::extract(x = listCov[[j]]$raster,
-                                  y = xyCor)
-      Xdesign = cbind(Xdesign, tmpDesign, tmpDesign[,1]*(idxUrb+0), tmpDesign[,2]*(idxUrb+0))
-    }
-    
-    # Map spatial effect to these coordinates
-    Amap = inla.spde.make.A(mesh = mesh, loc = xyCor)
-    
-    # Full resolution
-    idxSub = 1:dim(Amap)[1]
-    idxSub = idxSub[!is.na(popList$popAdm2.2018[[i]][[2]][idxSub])]
-    if(!is.null(listCov)){
-      for(j in 1:length(listCov)){
-        idxSub = idxSub[!is.na(Xdesign[idxSub,j])]
+    # Iterate through admin2 areas
+    admin2 = matrix(NA, nrow = 774, ncol = nSamp)
+    admin2.urb = matrix(NA, nrow = 774, ncol = nSamp)
+    admin2.rur = matrix(NA, nrow = 774, ncol = nSamp)
+    for(i in 1:774){
+      if(!(i%in%onlyAdm2)){
+        next
       }
+      print(i)
+      # Urban indicies & cell numbers from raster
+      idxUrb = popList$idxUrb[[i]]
+      cellNum = popList$popAdm2.2018[[i]][[1]][,1]
+      
+      # Get x and y coordinates
+      pop2018 = raster("../Data/Nigeria_pop/nga_ppp_2018_UNadj.tif")
+      xyCor = xyFromCell(pop2018, cell = cellNum)
+      
+      # Get covariate values
+      Xdesign = cbind(1, idxUrb+0)
+      if(covarModel){
+        tmpDesign1 = raster::extract(x = listCov[[1]]$raster,
+                                    y = xyCor)
+        tmpDesign2 = raster::extract(x = listCov[[2]]$raster,
+                                     y = xyCor)
+        Xdesign = cbind(Xdesign, tmpDesign1, tmpDesign2, tmpDesign1*(idxUrb+0), tmpDesign2*(idxUrb+0))
+      }
+      
+      # Get populations
+      urbPop = sum(popList$popAdm2.2018[[i]][[2]][idxUrb], na.rm = TRUE)
+      rurPop = sum(popList$popAdm2.2018[[i]][[2]][!idxUrb], na.rm = TRUE)
+      uProp = urbPop/(urbPop+rurPop)
+      
+      # Spatial effect idx
+      if(randEff != "none"){
+        idxSpace = i
+      }
+      if(!areaIsAdmin2){
+        idxSpace = adm2Toadm1[idxSpace]
+      }
+      
+      # Calculate samples
+      localSamples = Xdesign%*%covSample
+      if(randEff != "none"){
+        localSamples = localSamples + kronecker(matrix(1, nrow = dim(Xdesign)[1], ncol = 1), spaceSample[idxSpace,,drop=FALSE])
+      }
+      localSamples = localSamples + matrix(rnorm(length(localSamples)), nrow = dim(localSamples)[1], ncol = dim(localSamples)[2])*kronecker(matrix(clustSD, nrow = 1, ncol = nSamp), matrix(1, nrow = dim(localSamples)[1], ncol = 1))
+      localSamples = 1/(1+exp(-localSamples))
+      localSamples = localSamples*kronecker(matrix(1, nrow = 1, ncol = nSamp), matrix(popList$popAdm2.2018[[i]][[2]], nrow = dim(localSamples)[1], ncol = 1))
+      
+      # Save in data object
+      admin2[i, ] = colSums(localSamples, na.rm = TRUE)/(urbPop+rurPop)
+      admin2.urb[i,] = colSums(localSamples[idxUrb,, drop = FALSE], na.rm = TRUE)/urbPop
+      admin2.rur[i,] = colSums(localSamples[!idxUrb,,drop = FALSE], na.rm = TRUE)/rurPop
     }
-    inSample = rep(FALSE, dim(Amap)[1])
-    inSample[idxSub] = TRUE
-    Amap = Amap[idxSub,]
-    if(!is.null(listCov)){
-      Xdesign = Xdesign[idxSub,]
-    }
-    
-    # Get populations
-    urbPop = sum(popList$popAdm2.2018[[i]][[2]][inSample & idxUrb], na.rm = TRUE)
-    rurPop = sum(popList$popAdm2.2018[[i]][[2]][inSample & !idxUrb], na.rm = TRUE)
-    uProp = urbPop/(urbPop+rurPop)
-    
-    # Calculate samples
-    localSamples = Amap%*%spaceSample + kronecker(matrix(urbSample, nrow = 1, ncol = nSamp), matrix(idxUrb[idxSub]+0, ncol = 1)) + kronecker(matrix(intSample, nrow = 1, ncol = nSamp), matrix(1, nrow = length(idxSub), ncol = 1))
-    localSamples = localSamples + matrix(rnorm(length(localSamples)), nrow = dim(localSamples)[1], ncol = dim(localSamples)[2])*kronecker(matrix(clustSD, nrow = 1, ncol = nSamp), matrix(1, nrow = length(idxSub), ncol = 1))
-    if(!is.null(listCov)){
-      localSamples = localSamples + Xdesign%*%covSample
-    }
-    localSamples = 1/(1+exp(-localSamples))
-    localSamples = localSamples*kronecker(matrix(1, nrow = 1, ncol = nSamp), matrix(popList$popAdm2.2018[[i]][[2]][idxSub], nrow = length(idxSub), ncol = 1))
-    
-    # Save in data object
-    admin2[i, ] = colSums(localSamples, na.rm = TRUE)/(urbPop+rurPop)
-    admin2.urb[i,] = colSums(localSamples[idxUrb[inSample],, drop = FALSE], na.rm = TRUE)/urbPop
-    admin2.rur[i,] = colSums(localSamples[!idxUrb[inSample],,drop = FALSE], na.rm = TRUE)/rurPop
-  }
   
   ## Step 3: Admin1 samples
-  # Iterate through admin2 areas
-  admin1 = matrix(0, nrow = 37, ncol = nSamp)
-  admin1.urb = matrix(0, nrow = 37, ncol = nSamp)
-  admin1.rur = matrix(0, nrow = 37, ncol = nSamp)
-  unNameAdm1 = unique(nameAdm1)
-  for(i in 1:37){
-    if(!(i%in%onlyAdm1)){
-      next
+    # Iterate through admin2 areas
+    admin1 = matrix(0, nrow = 37, ncol = nSamp)
+    admin1.urb = matrix(0, nrow = 37, ncol = nSamp)
+    admin1.rur = matrix(0, nrow = 37, ncol = nSamp)
+    unNameAdm1 = unique(nameAdm1)
+    for(i in 1:37){
+      if(!(i%in%onlyAdm1)){
+        next
+      }
+      # Get indicies of admin2 areas
+      idxAdm2 = which(nameAdm1 == unNameAdm1[i])
+      totUrb = 0
+      totRur = 0
+      for(k in idxAdm2){
+        idxUrb = popList$idxUrb[[k]]
+        currUrb = sum(popList$popAdm2.2018[[k]][[2]][idxUrb], na.rm = TRUE)
+        currRur = sum(popList$popAdm2.2018[[k]][[2]][!idxUrb], na.rm = TRUE)
+        totUrb = totUrb + currUrb
+        totRur = totRur + currRur
+        
+        admin1[i,] = admin1[i,] + admin2[k,]*(currUrb+currRur)
+        if(currUrb > 0)
+          admin1.urb[i,] = admin1.urb[i,] + admin2.urb[k,]*currUrb
+        if(currRur > 0)
+          admin1.rur[i,] = admin1.rur[i,] + admin2.rur[k,]*currRur
+      }
+      admin1[i,] = admin1[i,]/(totUrb+totRur)
+      admin1.urb[i,] = admin1.urb[i,]/totUrb
+      admin1.rur[i,] = admin1.rur[i,]/totRur
     }
-    # Get indicies of admin2 areas
-    idxAdm2 = which(nameAdm1 == unNameAdm1[i])
-    totUrb = 0
-    totRur = 0
-    for(k in idxAdm2){
-      idxUrb = popList$idxUrb[[k]]
-      currUrb = sum(popList$popAdm2.2018[[k]][[2]][idxUrb], na.rm = TRUE)
-      currRur = sum(popList$popAdm2.2018[[k]][[2]][!idxUrb], na.rm = TRUE)
-      totUrb = totUrb + currUrb
-      totRur = totRur + currRur
-      
-      admin1[i,] = admin1[i,] + admin2[k,]*(currUrb+currRur)
-      if(currUrb > 0)
-        admin1.urb[i,] = admin1.urb[i,] + admin2.urb[k,]*currUrb
-      if(currRur > 0)
-        admin1.rur[i,] = admin1.rur[i,] + admin2.rur[k,]*currRur
+    
+    ## Calculate quantiles
+    pAdmin1     = matrix(0, nrow = 37, ncol = 3)
+    pAdmin1.rur = matrix(0, nrow = 37, ncol = 3)
+    pAdmin1.urb = matrix(0, nrow = 37, ncol = 3)
+    for(i in 1:37){
+      pAdmin1[i,] = quantile(admin1[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+      pAdmin1.rur[i,] = quantile(admin1.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+      pAdmin1.urb[i,] = quantile(admin1.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
     }
-    admin1[i,] = admin1[i,]/(totUrb+totRur)
-    admin1.urb[i,] = admin1.urb[i,]/totUrb
-    admin1.rur[i,] = admin1.rur[i,]/totRur
-  }
-  
-  ## Calculate quantiles
-  pAdmin1     = matrix(0, nrow = 37, ncol = 3)
-  pAdmin1.rur = matrix(0, nrow = 37, ncol = 3)
-  pAdmin1.urb = matrix(0, nrow = 37, ncol = 3)
-  for(i in 1:37){
-    pAdmin1[i,] = quantile(admin1[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
-    pAdmin1.rur[i,] = quantile(admin1.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
-    pAdmin1.urb[i,] = quantile(admin1.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
-  }
-  
-  pAdmin2     = matrix(0, nrow = 774, ncol = 3)
-  pAdmin2.rur = matrix(0, nrow = 774, ncol = 3)
-  pAdmin2.urb = matrix(0, nrow = 774, ncol = 3)
-  for(i in 1:774){
-    pAdmin2[i,] = quantile(admin2[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
-    pAdmin2.rur[i,] = quantile(admin2.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
-    pAdmin2.urb[i,] = quantile(admin2.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
-  }
+    
+    pAdmin2     = matrix(0, nrow = 774, ncol = 3)
+    pAdmin2.rur = matrix(0, nrow = 774, ncol = 3)
+    pAdmin2.urb = matrix(0, nrow = 774, ncol = 3)
+    for(i in 1:774){
+      pAdmin2[i,] = quantile(admin2[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+      pAdmin2.rur[i,] = quantile(admin2.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+      pAdmin2.urb[i,] = quantile(admin2.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    }
   
   ## Make result objects (admin1)
   spat1.overD.ur = data.frame(admin1 = rep(levels(myData$admin1Fac), 2),
@@ -1744,11 +1745,11 @@ aggUnitLevel = function(res.inla,
   spat2.overD = spat2.overD[idx,]
   
   ## Return results
-  return(list(overD.ur = spat1.overD.ur,
-              overD = spat1.overD,
-              admin2.overD.ur = spat2.overD.ur,
-              admin2.overD = spat2.overD,
-              samples = list(p.overD = admin1,
-                             pRur.overD = admin1.rur,
-                             pUrb.overD = admin1.urb)))
+  return(list(admin1.ur = spat1.overD.ur,
+              admin1 = spat1.overD,
+              admin2.ur = spat2.overD.ur,
+              admin2 = spat2.overD,
+              samples = list(p = admin1,
+                             pRur = admin1.rur,
+                             pUrb = admin1.urb)))
 }
