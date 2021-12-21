@@ -252,6 +252,10 @@ save.image("Partial_Synth.RData")
 #######################
 ## Unit-level models ##
 #######################
+  nameAdm1 = c()
+  for(i in 1:774){
+    nameAdm1 = c(nameAdm1, strsplit(nameVec[i], ":")[[1]][1])
+  }
   ##############################################
   ## Unit-level models: No area-level effects ##
   ##############################################
@@ -263,7 +267,13 @@ save.image("Partial_Synth.RData")
                                    clustPrior = iidPrior,
                                    randomEffect = "none",
                                    admin2 = FALSE, 
-                                   covarModel = TRUE)
+                                   covarModel = TRUE,
+                                   nameVec = nameVec,
+                                   popList = nigeriaPop,
+                                   listCov = listCov,
+                                   nSamp = 1000,
+                                   nameAdm1 = nameAdm1)
+    save.image("Partial_UnitLevel.RData")
   
   ##################################################
   ## Unit-level models: admin1 area-level effects ##
@@ -280,7 +290,13 @@ save.image("Partial_Synth.RData")
                                           areaPrior = iidPrior,
                                           randomEffect = "iid",
                                           admin2 = FALSE, 
-                                          covarModel = FALSE)
+                                          covarModel = FALSE,
+                                          nameVec = nameVec,
+                                          popList = nigeriaPop,
+                                          listCov = listCov,
+                                          nSamp = 1000,
+                                          nameAdm1 = nameAdm1)
+      save.image("Partial_UnitLevel.RData")
       
     ###################################################
     ## Unit-level models: BYM admin1 + No covariates ##
@@ -297,7 +313,13 @@ save.image("Partial_Synth.RData")
                                           nigeriaGraph = nigeriaGraph_admin1,
                                           randomEffect = "bym2",
                                           admin2 = FALSE, 
-                                          covarModel = FALSE)
+                                          covarModel = FALSE,
+                                          nameVec = nameVec,
+                                          popList = nigeriaPop,
+                                          listCov = listCov,
+                                          nSamp = 1000,
+                                          nameAdm1 = nameAdm1)
+      save.image("Partial_UnitLevel.RData")
     
     ################################################
     ## Unit-level models: iid admin1 + Covariates ##
@@ -312,7 +334,13 @@ save.image("Partial_Synth.RData")
                                         nigeriaGraph = nigeriaGraph_admin1,
                                         randomEffect = "iid",
                                         admin2 = FALSE, 
-                                        covarModel = TRUE)
+                                        covarModel = TRUE,
+                                        nameVec = nameVec,
+                                        popList = nigeriaPop,
+                                        listCov = listCov,
+                                        nSamp = 1000,
+                                        nameAdm1 = nameAdm1)
+      save.image("Partial_UnitLevel.RData")
     
     ################################################
     ## Unit-level models: BYM admin1 + Covariates ##
@@ -329,7 +357,13 @@ save.image("Partial_Synth.RData")
                                         nigeriaGraph = nigeriaGraph_admin1,
                                         randomEffect = "bym2",
                                         admin2 = FALSE, 
-                                        covarModel = TRUE)
+                                        covarModel = TRUE,
+                                        nameVec = nameVec,
+                                        popList = nigeriaPop,
+                                        listCov = listCov,
+                                        nSamp = 1000,
+                                        nameAdm1 = nameAdm1)
+      save.image("Partial_UnitLevel.RData")
 
   ##############################################################################
   ## Unit-level models: admin2 area-level effects ##############################
@@ -349,7 +383,13 @@ save.image("Partial_Synth.RData")
                                           nigeriaGraph = nigeriaGraph,
                                           randomEffect = "bym2",
                                           admin2 = TRUE, 
-                                          covarModel = FALSE)
+                                          covarModel = FALSE,
+                                          nameVec = nameVec,
+                                          popList = nigeriaPop,
+                                          listCov = listCov,
+                                          nSamp = 1000,
+                                          nameAdm1 = nameAdm1)
+      save.image("Partial_UnitLevel.RData")
 
     ################################################
     ## Unit-level models: BYM admin1 + Covariates ##
@@ -367,6 +407,7 @@ save.image("Partial_Synth.RData")
                                         randomEffect = "bym2",
                                         admin2 = TRUE, 
                                         covarModel = TRUE)
+      save.image("Partial_UnitLevel.RData")
     
 ################################################################################
 ## No space model ##############################################################
@@ -584,7 +625,6 @@ save.image("Partial_UnitLevel.RData")
       allLevels.spdeCov.holdOut$clustSum$cInf[idxNum,] = inla.spdeCov.tmp$summary.linear.predictor[idxNum,]
       spdeCov.holdOutMarginals[idxNum] = inla.spdeCov.tmp$marginals.linear.predictor[idxNum]
     }
-    
 save.image("Partial_SPDE.RData")
 
 ## 10-fold cross validation
@@ -722,6 +762,12 @@ for(cvFold in 1:10){
   dev.off()
   
 ## Scores (admin1)
+  # Extract results
+  synthEst.logit1.holdOut = res.synthLogit1$res.holdOut
+  synthEst.logit2.holdOut = res.synthLogit2$res.holdOut
+  synthEst.linear1.holdOut = res.synthLinear1$res.holdOut
+  synthEst.linear2.holdOut = res.synthLinear2$res.holdOut
+  
   # Hold-out state MSE
   mse.fixed = mean((direct.est$p_Med-fixed.holdOut$overD$p_Med)^2)
   mse.smooth = mean((direct.est$p_Med-smooth.direct.holdOut$p_Med)^2)

@@ -156,7 +156,6 @@ runUnitLevel = function(myData,
                         nSamp = 1000,
                         admin2 = FALSE, 
                         covarModel = FALSE,
-                        nameAdm1,
                         listCov){
   # Fit unit-level model
   inla.fit = getUnitLevelModel(myData = myData,
@@ -183,17 +182,17 @@ runUnitLevel = function(myData,
   }else{
     numAreas = 37
   }
-  inla.agg = aggUnitLevel = function(res.inla = inla.fit,
-                                     popList = popList,
-                                     myData = myData,
-                                     nameAdm1 = nameAdm1,
-                                     nSamp = nSamp,
-                                     listCov = listCov,
-                                     numAreas = numAreas,
-                                     randEff = randomEffect,
-                                     covarModel = covarModel,
-                                     adm2Toadm1 = adm2Toadm1,
-                                     areaIsAdmin2 = admin2)
+  inla.agg = aggUnitLevel(res.inla = inla.fit,
+                          popList = popList,
+                          myData = myData,
+                          nameAdm1 = nameAdm1,
+                          nSamp = nSamp,
+                          listCov = listCov,
+                          numAreas = numAreas,
+                          randEff = randomEffect,
+                          covarModel = covarModel,
+                          adm2Toadm1 = adm2Toadm1,
+                          areaIsAdmin2 = admin2)
   
   numData = dim(myData)[1]
   inla.agg$clustSum = list(cIdx = myData$clusterIdx,

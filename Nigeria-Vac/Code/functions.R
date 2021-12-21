@@ -1587,7 +1587,9 @@ aggUnitLevel = function(res.inla,
     covIdx = res.inla$misc$configs$contents$start[-(1:2)]
   }
   covSample = matrix(NA, nrow = length(covIdx), ncol = nSamp)
-  spaceSample = matrix(NA, nrow = length(spaceIdx), ncol = nSamp)
+  if(randEff != "none"){
+    spaceSample = matrix(NA, nrow = length(spaceIdx), ncol = nSamp)
+  }
   clustSD = matrix(NA, nrow = 1, ncol = nSamp)
   
   if(randEff == "bym2"){
