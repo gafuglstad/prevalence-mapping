@@ -271,8 +271,7 @@ save.image("Partial_Synth.RData")
                                    nameVec = nameVec,
                                    popList = nigeriaPop,
                                    listCov = listCov,
-                                   nSamp = 1000,
-                                   nameAdm1 = nameAdm1)
+                                   nSamp = 1000)
     save.image("Partial_UnitLevel.RData")
   
   ##################################################
@@ -294,8 +293,7 @@ save.image("Partial_Synth.RData")
                                           nameVec = nameVec,
                                           popList = nigeriaPop,
                                           listCov = listCov,
-                                          nSamp = 1000,
-                                          nameAdm1 = nameAdm1)
+                                          nSamp = 1000)
       save.image("Partial_UnitLevel.RData")
       
     ###################################################
@@ -317,8 +315,7 @@ save.image("Partial_Synth.RData")
                                           nameVec = nameVec,
                                           popList = nigeriaPop,
                                           listCov = listCov,
-                                          nSamp = 1000,
-                                          nameAdm1 = nameAdm1)
+                                          nSamp = 1000)
       save.image("Partial_UnitLevel.RData")
     
     ################################################
@@ -338,8 +335,7 @@ save.image("Partial_Synth.RData")
                                         nameVec = nameVec,
                                         popList = nigeriaPop,
                                         listCov = listCov,
-                                        nSamp = 1000,
-                                        nameAdm1 = nameAdm1)
+                                        nSamp = 1000)
       save.image("Partial_UnitLevel.RData")
     
     ################################################
@@ -361,8 +357,7 @@ save.image("Partial_Synth.RData")
                                         nameVec = nameVec,
                                         popList = nigeriaPop,
                                         listCov = listCov,
-                                        nSamp = 1000,
-                                        nameAdm1 = nameAdm1)
+                                        nSamp = 1000)
       save.image("Partial_UnitLevel.RData")
 
   ##############################################################################
@@ -387,8 +382,7 @@ save.image("Partial_Synth.RData")
                                           nameVec = nameVec,
                                           popList = nigeriaPop,
                                           listCov = listCov,
-                                          nSamp = 1000,
-                                          nameAdm1 = nameAdm1)
+                                          nSamp = 1000)
       save.image("Partial_UnitLevel.RData")
 
     ################################################
@@ -406,7 +400,11 @@ save.image("Partial_Synth.RData")
                                         nigeriaGraph = nigeriaGraph,
                                         randomEffect = "bym2",
                                         admin2 = TRUE, 
-                                        covarModel = TRUE)
+                                        covarModel = TRUE,
+                                        nameVec = nameVec,
+                                        popList = nigeriaPop,
+                                        listCov = listCov,
+                                        nSamp = 1000)
       save.image("Partial_UnitLevel.RData")
     
 ################################################################################

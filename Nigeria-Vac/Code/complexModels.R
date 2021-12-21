@@ -223,19 +223,19 @@ runUnitLevel = function(myData,
     # Only estimate necessary regions
     unNameAdm1 = unique(nameAdm1)
     idxAdm2 = which(nameAdm1 == unNameAdm1[i])
-    inla.agg.tmp = aggUnitLevel = function(res.inla = inla.tmp,
-                                           popList = popList,
-                                           myData = myData,
-                                           nameAdm1 = nameAdm1,
-                                           nSamp = nSamp,
-                                           listCov = listCov,
-                                           numAreas = numAreas,
-                                           randEff = randomEffect,
-                                           covarModel = covarModel,
-                                           adm2Toadm1 = adm2Toadm1,
-                                           areaIsAdmin2 = admin2,
-                                           onlyAdm2 = idxAdm2,
-                                           onlyAdm1 = c(i))
+    inla.agg.tmp = aggUnitLevel(res.inla = inla.tmp,
+                                popList = popList,
+                                myData = myData,
+                                nameAdm1 = nameAdm1,
+                                nSamp = nSamp,
+                                listCov = listCov,
+                                numAreas = numAreas,
+                                randEff = randomEffect,
+                                covarModel = covarModel,
+                                adm2Toadm1 = adm2Toadm1,
+                                areaIsAdmin2 = admin2,
+                                onlyAdm2 = idxAdm2,
+                                onlyAdm1 = c(i))
     
     # Extract estimate
     inla.agg.houldOut$admin1.ur[2*(i-1)+c(1,2),]           = inla.agg.tmp$admin1.ur[2*(i-1)+c(1,2),]
