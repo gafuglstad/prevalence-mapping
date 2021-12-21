@@ -1645,10 +1645,11 @@ aggUnitLevel = function(res.inla,
       # Spatial effect idx
       if(randEff != "none"){
         idxSpace = i
+        if(!areaIsAdmin2){
+          idxSpace = adm2Toadm1[idxSpace]
+        }
       }
-      if(!areaIsAdmin2){
-        idxSpace = adm2Toadm1[idxSpace]
-      }
+
       
       # Calculate samples
       localSamples = Xdesign%*%covSample
