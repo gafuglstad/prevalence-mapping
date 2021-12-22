@@ -577,13 +577,16 @@ getContLGM = function(myData, mesh, useCov = FALSE, prior.range, prior.sigma, cl
   A = inla.spde.make.A(mesh = mesh,
                        loc = cbind(myData$lon, myData$lat))
   
+  # Introduce dummy variable
+  myData$urbanDummy = (myData$urban == "U") + 0
+  
   # stack
   if(!useCov){
     stk = inla.stack(data = list(measles = myData$measles,
                                  Ntrials = myData$Ntrials),
                      A = list(A,1),
                      effects = list(list(s = 1:spde$n.spde),
-                                    list(urban = (myData$urban == "U")+0 ,
+                                    list(urbanDummy = myData$urbanDummy,
                                          intercept = 1,
                                          clusterIdx = myData$clusterIdx)))
   } else{
@@ -591,7 +594,7 @@ getContLGM = function(myData, mesh, useCov = FALSE, prior.range, prior.sigma, cl
                                  Ntrials = myData$Ntrials),
                      A = list(A,1),
                      effects = list(list(s = 1:spde$n.spde),
-                                    list(urban = (myData$urban == "U")+0 ,
+                                    list(urbanDummy = myData$urbanDummy,
                                          intercept = 1,
                                          poverty = myData$poverty,
                                          lAccess = myData$lAccess,
@@ -600,9 +603,9 @@ getContLGM = function(myData, mesh, useCov = FALSE, prior.range, prior.sigma, cl
     
   # Formula
   if(!useCov){
-    formula_spde = measles ~ intercept + urban + f(s, model = spde) + f(clusterIdx, model = "iid", hyper = clustPrior) - 1
+    formula_spde = measles ~ intercept + urbanDummy + f(s, model = spde) + f(clusterIdx, model = "iid", hyper = clustPrior) - 1
   } else{
-    formula_spde = measles ~ intercept + urban + poverty + lAccess + f(s, model = spde) + f(clusterIdx, model = "iid", hyper = clustPrior) - 1
+    formula_spde = measles ~ intercept + urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + f(s, model = spde) + f(clusterIdx, model = "iid", hyper = clustPrior) - 1
   }
   
   # Fit
@@ -628,7 +631,7 @@ aggSPDE = function(res.inla, popList, myData, nameAdm1, nSamp = 1000, onlyAdm2 =
     intIdx = res.inla$misc$configs$contents$start[5]
     urbIdx = res.inla$misc$configs$contents$start[6]
     if(!is.null(listCov)){
-      covIdx = res.inla$misc$configs$contents$start[6 + (1:length(listCov))]
+      covIdx = res.inla$misc$configs$contents$start[6 + (1:4)]
     }
     spaceIdx = res.inla$misc$configs$contents$start[3]:(res.inla$misc$configs$contents$start[4]-1)
     intSample = matrix(NA, nrow = 1, ncol = nSamp)
@@ -668,11 +671,11 @@ aggSPDE = function(res.inla, popList, myData, nameAdm1, nSamp = 1000, onlyAdm2 =
       
       # Get covariate values
       if(!is.null(listCov)){
-        Xdesign = matrix(NA, nrow = dim(xyCor)[1], ncol = 2)
-        for(j in 1:length(listCov)){
-          Xdesign[,j] = raster::extract(x = listCov[[j]]$raster,
-                                        y = xyCor)
-        }
+        tmpDesign1 = raster::extract(x = listCov[[1]]$raster,
+                                     y = xyCor)
+        tmpDesign2 = raster::extract(x = listCov[[2]]$raster,
+                                     y = xyCor)
+        Xdesign = cbind(tmpDesign1, tmpDesign2, tmpDesign1*(idxUrb+0), tmpDesign2*(idxUrb+0))
       }
       
       # Map spatial effect to these coordinates

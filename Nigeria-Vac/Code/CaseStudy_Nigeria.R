@@ -408,57 +408,6 @@ save.image("Partial_Synth.RData")
       save.image("Partial_UnitLevel.RData")
     
 ################################################################################
-## No space model ##############################################################
-################################################################################
-    print("Computing simple model...")
-    # Set priors
-    iidPrior  = list(prec = list(prior = "pc.prec",
-                                 param = c(1, 0.05)))
-    
-    # Compute full estimate
-    inla.fixed = getFixedLGM(myData = myData,
-                             clustPrior = iidPrior)
-    
-    # Calculate estimates
-    fixed.model = aggFixed(res.inla = inla.fixed,
-                           popList = nigeriaPop,
-                           myData = myData,
-                           nSamp = 1000)
-    fixed.model$clustSum = list(cIdx = myData$clusterIdx,
-                                cInf = inla.fixed$summary.linear.predictor)
-    
-    # Compute hold-out estimates
-    fixed.holdOut = fixed.model
-    fixed.holdOutMarginals = inla.fixed$marginals.linear.predictor[1:nrow(myData)]
-    for(i in 1:37){
-      print("Take out region (admin1):")
-      print(i)
-      # Remove data from region i
-      tmpData = myData
-      idx = as.numeric(myData$admin1Fac) == i
-      tmpData$measles[idx] = NA
-      
-      # Fit model
-      inla.fixed.tmp = getFixedLGM(myData = tmpData,
-                                   clustPrior = iidPrior)
-      fixed.model.tmp = aggFixed(res.inla = inla.fixed.tmp,
-                                 popList = nigeriaPop,
-                                 myData = tmpData,
-                                 nSamp = 1000)
-      
-      # Extract estimate
-      fixed.holdOut$overD.ur[(i-1)*2+c(1,2),] = fixed.model.tmp$overD.ur[(i-1)*2+c(1,2),]
-      fixed.holdOut$overD[i,]                 = fixed.model.tmp$overD[i,]
-      fixed.holdOut$samples$p.overD[i,]       = fixed.model.tmp$samples$p.overD[i,]
-      fixed.holdOut$samples$pRur.overD[i,]    = fixed.model.tmp$samples$pRur.overD[i,]
-      fixed.holdOut$samples$pUrb.overD[i,]    = fixed.model.tmp$samples$pUrb.overD[i,]
-      
-      fixed.holdOut$clustSum$cInf[idx,] = inla.fixed.tmp$summary.linear.predictor[idx,]
-      
-      fixed.holdOutMarginals[idx] = inla.fixed.tmp$marginals.linear.predictor[idx]
-    }
-save.image("Partial_UnitLevel.RData")
-################################################################################
 ## GRF Models ##################################################################
 ################################################################################
   ## SPDE
