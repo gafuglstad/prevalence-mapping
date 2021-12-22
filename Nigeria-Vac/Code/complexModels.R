@@ -258,3 +258,69 @@ runUnitLevel = function(myData,
               est.holdOut = inla.agg.houldOut,
               marginal.holdOut = inla.holdOutMarginals))
 }
+
+oldAdmin1Test = function(myData,
+                         nigeriaGraph_admin1,
+                         nigeriaPop){
+  print("Computing BYM on admin1...")
+  # Set priors
+  bym2prior = list(prec = list(param = c(1, 0.05)),
+                   phi  = list(param = c(0.5, 0.5)))
+  iidPrior  = list(prec = list(prior = "pc.prec",
+                               param = c(1, 0.05)))
+  
+  # Compute full estimate
+  inla.admin1 = getAreaLGM(myData = myData,
+                           nigeriaGraph = nigeriaGraph_admin1,
+                           bym2prior = bym2prior,
+                           clustPrior = iidPrior)
+  
+  # Calculate estimates
+  admin1.bym = aggBYM_admin1(res.inla = inla.admin1,
+                             popList = nigeriaPop,
+                             myData = myData,
+                             nSamp = 1000)
+  admin1.bym$clustSum = list(cIdx = myData$clusterIdx,
+                             cInf = inla.admin1$summary.linear.predictor)
+  
+  # Compute hold-out estimates
+  admin1.bym.holdOut = admin1.bym
+  admin1.bym.holdOutMarginals = inla.admin1$marginals.linear.predictor[1:nrow(myData)]
+  for(i in 1:length(admin1.bym$meas$admin1)){
+    print("Take out region (admin1):")
+    print(i)
+    # Remove data from region i
+    tmpData = myData
+    idx = as.numeric(myData$admin1Fac) == i
+    tmpData$measles[idx] = NA
+    
+    # Fit model
+    inla.admin1.tmp = getAreaLGM(myData = tmpData,
+                                 nigeriaGraph = nigeriaGraph_admin1,
+                                 bym2prior = bym2prior,
+                                 clustPrior = iidPrior)
+    admin1.bym.tmp = aggBYM_admin1(res.inla = inla.admin1.tmp,
+                                   popList = nigeriaPop,
+                                   myData = tmpData,
+                                   nSamp = 1000)
+    
+    # Extract estimate
+    admin1.bym.holdOut$meas.ur[(i-1)*2+c(1,2),]  = admin1.bym.tmp$meas.ur[(i-1)*2+c(1,2),]
+    admin1.bym.holdOut$meas[i,]     = admin1.bym.tmp$meas[i,]
+    admin1.bym.holdOut$real.ur[(i-1)*2+c(1,2),]  = admin1.bym.tmp$real.ur[(i-1)*2+c(1,2),]
+    admin1.bym.holdOut$real[i,]     = admin1.bym.tmp$real[i,]
+    admin1.bym.holdOut$overD.ur[(i-1)*2+c(1,2),] = admin1.bym.tmp$overD.ur[(i-1)*2+c(1,2),]
+    admin1.bym.holdOut$overD[i,]    = admin1.bym.tmp$overD[i,]
+    admin1.bym.holdOut$samples$p.overD[i,] = admin1.bym.tmp$samples$p.overD[i,]
+    admin1.bym.holdOut$samples$pRur.overD[i,] = admin1.bym.tmp$samples$pRur.overD[i,]
+    admin1.bym.holdOut$samples$pUrb.overD[i,] = admin1.bym.tmp$samples$pUrb.overD[i,]
+    
+    admin1.bym.holdOut$clustSum$cInf[idx,] = inla.admin1.tmp$summary.linear.predictor[idx,]
+    
+    admin1.bym.holdOutMarginals[idx] = inla.admin1.tmp$marginals.linear.predictor[idx]
+  }
+  return(list(fit = inla.admin1,
+              est = admin1.bym,
+              est.holdOut = admin1.bym.holdOut,
+              marginal.holdOut = admin1.bym.holdOutMarginals))
+}

@@ -406,6 +406,64 @@ save.image("Partial_Synth.RData")
                                         listCov = listCov,
                                         nSamp = 1000)
       save.image("Partial_UnitLevel.RData")
+      
+  #### Old TEST
+  res.admin1.old = oldAdmin1Test(myData = myData,
+                                 nigeriaGraph_admin1 = nigeriaGraph_admin1,
+                                 nigeriaPop = nigeriaPop)
+  save.image("Partial_UnitLevel.RData")
+      
+################################################################################
+## No space and covariate model ################################################
+################################################################################
+    print("Computing simple model...")
+    # Set priors
+    iidPrior  = list(prec = list(prior = "pc.prec",
+                                 param = c(1, 0.05)))
+    
+    # Compute full estimate
+    inla.fixed = getFixedLGM(myData = myData,
+                             clustPrior = iidPrior)
+    
+    # Calculate estimates
+    fixed.model = aggFixed(res.inla = inla.fixed,
+                           popList = nigeriaPop,
+                           myData = myData,
+                           nSamp = 1000)
+    fixed.model$clustSum = list(cIdx = myData$clusterIdx,
+                                cInf = inla.fixed$summary.linear.predictor)
+    
+    # Compute hold-out estimates
+    fixed.holdOut = fixed.model
+    fixed.holdOutMarginals = inla.fixed$marginals.linear.predictor[1:nrow(myData)]
+    for(i in 1:37){
+      print("Take out region (admin1):")
+      print(i)
+      # Remove data from region i
+      tmpData = myData
+      idx = as.numeric(myData$admin1Fac) == i
+      tmpData$measles[idx] = NA
+      
+      # Fit model
+      inla.fixed.tmp = getFixedLGM(myData = tmpData,
+                                   clustPrior = iidPrior)
+      fixed.model.tmp = aggFixed(res.inla = inla.fixed.tmp,
+                                 popList = nigeriaPop,
+                                 myData = tmpData,
+                                 nSamp = 1000)
+      
+      # Extract estimate
+      fixed.holdOut$overD.ur[(i-1)*2+c(1,2),] = fixed.model.tmp$overD.ur[(i-1)*2+c(1,2),]
+      fixed.holdOut$overD[i,]                 = fixed.model.tmp$overD[i,]
+      fixed.holdOut$samples$p.overD[i,]       = fixed.model.tmp$samples$p.overD[i,]
+      fixed.holdOut$samples$pRur.overD[i,]    = fixed.model.tmp$samples$pRur.overD[i,]
+      fixed.holdOut$samples$pUrb.overD[i,]    = fixed.model.tmp$samples$pUrb.overD[i,]
+      
+      fixed.holdOut$clustSum$cInf[idx,] = inla.fixed.tmp$summary.linear.predictor[idx,]
+      
+      fixed.holdOutMarginals[idx] = inla.fixed.tmp$marginals.linear.predictor[idx]
+    }
+    save.image("Partial_UnitLevel.RData")
     
 ################################################################################
 ## GRF Models ##################################################################
@@ -676,7 +734,6 @@ for(cvFold in 1:10){
 }
 
 
-
 ## Comparing different "nugget" assumptions
   # Absolute differences
   setEPS()
@@ -714,9 +771,10 @@ for(cvFold in 1:10){
   synthEst.logit2.holdOut = res.synthLogit2$res.holdOut
   synthEst.linear1.holdOut = res.synthLinear1$res.holdOut
   synthEst.linear2.holdOut = res.synthLinear2$res.holdOut
+  fixed.holdOut = res.noSpace.cov$est.holdOut
   
   # Hold-out state MSE
-  mse.fixed = mean((direct.est$p_Med-fixed.holdOut$overD$p_Med)^2)
+  mse.fixed = mean((direct.est$p_Med-fixed.holdOut$admin1$p_Med)^2)
   mse.smooth = mean((direct.est$p_Med-smooth.direct.holdOut$p_Med)^2)
   mse.synthLogit1  = mean((direct.est$p_Med-synthEst.logit1.holdOut$admin1$p_Med)^2)
   mse.synthLogit2  = mean((direct.est$p_Med-synthEst.logit2.holdOut$admin1$p_Med)^2)
@@ -727,7 +785,7 @@ for(cvFold in 1:10){
   mse.spde = mean((direct.est$p_Med-allLevels.spde.holdOut$overD$p_Med)^2)
   mse.spdeCov = mean((direct.est$p_Med-allLevels.spdeCov.holdOut$overD$p_Med)^2)
   
-  mse.logit.fixed = mean((logit(direct.est$p_Med)-logit(fixed.holdOut$overD$p_Med))^2)
+  mse.logit.fixed = mean((logit(direct.est$p_Med)-logit(fixed.holdOut$admin1$p_Med))^2)
   mse.logit.smooth = mean((logit(direct.est$p_Med)-logit(smooth.direct.holdOut$p_Med))^2)
   mse.logit.synthLogit1  = mean((logit(direct.est$p_Med)-logit(synthEst.logit1.holdOut$admin1$p_Med))^2)
   mse.logit.synthLogit2  = mean((logit(direct.est$p_Med)-logit(synthEst.logit2.holdOut$admin1$p_Med))^2)
@@ -757,8 +815,8 @@ for(cvFold in 1:10){
   colnames(mae.logit) = c("Fixed", "Smooth", "S-Logit1", "S-Logit2", "S-Linear1","S-Linear2", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
   # Hold-out CRPS
-  mu = rowMeans(logit(fixed.holdOut$samples$p.overD))
-  stdDev = sqrt(direct.est$se^2 + apply(logit(fixed.holdOut$samples$p.overD), 1, var))
+  mu = rowMeans(logit(fixed.holdOut$samples$p))
+  stdDev = sqrt(direct.est$se^2 + apply(logit(fixed.holdOut$samples$p), 1, var))
   crps.logit.fixed = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
   ds.logit.fixed = mean(((direct.est$logitP-mu)/stdDev)^2 + log(stdDev^2))
   
@@ -843,7 +901,7 @@ for(cvFold in 1:10){
                    ds.logit.spdeCov)
   colnames(ds.logit) = c("NoSpace", "Smooth", "S-Logit1", "S-Logit2", "S-Linear1","S-Linear2", "BYM (admin1)", "BYM (admin2)", "SPDE", "SPDE+Cov")
   
-  cov.noS = sum((fixed.holdOut$overD$p_Low < direct.est$p_Med) & (fixed.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
+  cov.noS = sum((fixed.holdOut$admin1$p_Low < direct.est$p_Med) & (fixed.holdOut$admin1$p_Upp > direct.est$p_Med))/37*100
   cov.smooth = sum((smooth.direct.holdOut$p_Low < direct.est$p_Med) & (smooth.direct.holdOut$p_Upp > direct.est$p_Med))/37*100
   cov.synthLogit1 = sum((synthEst.logit1.holdOut$admin1$p_Low < direct.est$p_Med) & (synthEst.logit1.holdOut$admin1$p_Upp > direct.est$p_Med))/37*100
   cov.synthLogit2 = sum((synthEst.logit2.holdOut$admin1$p_Low < direct.est$p_Med) & (synthEst.logit2.holdOut$admin1$p_Upp > direct.est$p_Med))/37*100
