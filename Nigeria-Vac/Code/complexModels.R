@@ -202,7 +202,7 @@ runUnitLevel = function(myData,
   inla.agg.houldOut = inla.agg
   inla.holdOutMarginals = inla.fit$marginals.linear.predictor[1:nrow(myData)]
   for(i in 1:37){
-    print("Take out region (SPDE):")
+    print("Take out region (Unit-level):")
     print(i)
     print(Sys.time())
     
