@@ -261,13 +261,10 @@ runUnitLevel = function(myData,
 
 oldAdmin1Test = function(myData,
                          nigeriaGraph_admin1,
-                         nigeriaPop){
+                         nigeriaPop,
+                         bym2prior,
+                         iidPrior){
   print("Computing BYM on admin1...")
-  # Set priors
-  bym2prior = list(prec = list(param = c(1, 0.05)),
-                   phi  = list(param = c(0.5, 0.5)))
-  iidPrior  = list(prec = list(prior = "pc.prec",
-                               param = c(1, 0.05)))
   
   # Compute full estimate
   inla.admin1 = getAreaLGM(myData = myData,

@@ -408,9 +408,16 @@ save.image("Partial_Synth.RData")
       save.image("Partial_UnitLevel.RData")
       
   #### Old TEST
+  # Set priors
+  bym2prior = list(prec = list(param = c(1, 0.05)),
+                   phi  = list(param = c(0.5, 0.5)))
+  iidPrior  = list(prec = list(prior = "pc.prec",
+                               param = c(1, 0.05)))
   res.admin1.old = oldAdmin1Test(myData = myData,
                                  nigeriaGraph_admin1 = nigeriaGraph_admin1,
-                                 nigeriaPop = nigeriaPop)
+                                 nigeriaPop = nigeriaPop,
+                                 iidPrior = iidPrior,
+                                 bym2prior = bym2prior)
   save.image("Partial_UnitLevel.RData")
       
 ################################################################################
