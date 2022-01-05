@@ -249,6 +249,7 @@ save.image("Partial_DirectSmooth.RData")
     print("Computing sythetic estimate (linear2)...")
     res.synthLinear2 = runSynthLinear(myData, nigeriaPop, nameVec, nSamp = 1000, listCov, sepUR = TRUE)
 save.image("Partial_Synth.RData")    
+
 #######################
 ## Unit-level models ##
 #######################
@@ -793,6 +794,7 @@ for(cvFold in 1:10){
   SmoothDirect = res.SmoothDirect$res.holdOut      
   
   # Hold-out state MSE
+  mse.fixed = mean((logit(direct.est$p_Med)-logit(fixed.holdOut$overD$p_Med))^2)
   mse.noSpace.cov = mean((logit(direct.est$p_Med)-logit(noSpace.cov$admin1$p_Med))^2)
   
   mse.admin1.iid.noCov = mean((logit(direct.est$p_Med)-logit(admin1.iid.noCov$admin1$p_Med))^2)
@@ -803,6 +805,8 @@ for(cvFold in 1:10){
   mse.admin2.bym.noCov = mean((logit(direct.est$p_Med)-logit(admin2.bym.noCov$admin1$p_Med))^2)
   mse.admin2.bym.cov = mean((logit(direct.est$p_Med)-logit(admin2.bym.cov$admin1$p_Med))^2)
   
+  mse.spde.noCov = mean((logit(direct.est$p_Med)-logit(allLevels.spde.holdOut$overD$p_Med))^2)
+  
   mse.synthLogit1 = mean((logit(direct.est$p_Med)-logit(synthLogit1$admin1$p_Med))^2)
   mse.synthLogit2 = mean((logit(direct.est$p_Med)-logit(synthLogit2$admin1$p_Med))^2)
   mse.synthLinear1 = mean((logit(direct.est$p_Med)-logit(synthLinear1$admin1$p_Med))^2)
@@ -812,14 +816,16 @@ for(cvFold in 1:10){
   
   mse.logit = cbind(mse.SmoothDirect,
                     mse.synthLogit1, mse.synthLogit2, mse.synthLinear1, mse.synthLinear2,
-                    mse.noSpace.cov,
+                    mse.fixed, mse.noSpace.cov,
                     mse.admin1.iid.noCov, mse.admin1.iid.cov, mse.admin1.bym.noCov, mse.admin1.bym.cov,
-                    mse.admin2.bym.noCov, mse.admin2.bym.cov)
+                    mse.admin2.bym.noCov, mse.admin2.bym.cov,
+                    mse.spde.noCov)
   colnames(mse.logit) = c("SmoothDirect",
-                          "S-Lin1", "S-Lin2", "S-Logit1", "S-Logit2",
-                          "NoSpace-Cov",
+                          "S-Logit", "S-Logit2", "S-Lin1", "S-Lin2",
+                          "NoSpace-UR", "NoSpace-Cov",
                           "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
-                          "A2-BYM-noCov", "A2-BYM-Cov")
+                          "A2-BYM-noCov", "A2-BYM-Cov",
+                          "GRF-noCov")
   
   # Hold-out CRPS
   compCRPS = function(est.holdOut, direct.est){
@@ -830,6 +836,12 @@ for(cvFold in 1:10){
                 ign = crps.logit.fixed$IGN))
   }
   
+  mu = logit(fixed.holdOut$overD$p_Med)
+  stdDev = sqrt(direct.est$se^2 + apply(logit(fixed.holdOut$samples$p.overD), 1, var))
+  crps.logit.fixed = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
+  crps.fixed = list(crps = crps.logit.fixed$CRPS,
+                           ign = crps.logit.fixed$IGN)
+    
   crps.noSpace.cov = compCRPS(noSpace.cov, direct.est)
   
   crps.admin1.iid.noCov = compCRPS(admin1.iid.noCov, direct.est)
@@ -839,6 +851,12 @@ for(cvFold in 1:10){
   
   crps.admin2.bym.noCov = compCRPS(admin2.bym.noCov, direct.est)
   crps.admin2.bym.cov = compCRPS(admin2.bym.cov, direct.est)
+  
+  mu = logit(allLevels.spde.holdOut$overD$p_Med)
+  stdDev = sqrt(direct.est$se^2 + apply(logit(allLevels.spde.holdOut$samples$p.overD), 1, var))
+  crps.logit.fixed = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
+  crps.spde.noCov = list(crps = crps.logit.fixed$CRPS,
+                         ign = crps.logit.fixed$IGN)
   
   crps.synthLogit1 = compCRPS(synthLogit1, direct.est)
   crps.synthLogit2 = compCRPS(synthLogit2, direct.est)
@@ -853,30 +871,35 @@ for(cvFold in 1:10){
   
   crps.logit = cbind(crps.SmoothDirect$crps,
                     crps.synthLogit1$crps, crps.synthLogit2$crps, crps.synthLinear1$crps, crps.synthLinear2$crps,
-                    crps.noSpace.cov$crps,
+                    crps.fixed$crps, crps.noSpace.cov$crps,
                     crps.admin1.iid.noCov$crps, crps.admin1.iid.cov$crps, crps.admin1.bym.noCov$crps, crps.admin1.bym.cov$crps,
-                    crps.admin2.bym.noCov$crps, crps.admin2.bym.cov$crps)
+                    crps.admin2.bym.noCov$crps, crps.admin2.bym.cov$crps,
+                    crps.spde.noCov$crps)
   colnames(crps.logit) = c("SmoothDirect",
-                          "S-Lin1", "S-Lin2", "S-Logit1", "S-Logit2",
-                          "NoSpace-Cov",
-                          "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
-                          "A2-BYM-noCov", "A2-BYM-Cov")
+                           "S-Logit", "S-Logit2", "S-Lin1", "S-Lin2",
+                           "NoSpace-UR", "NoSpace-Cov",
+                           "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
+                           "A2-BYM-noCov", "A2-BYM-Cov",
+                           "GRF-noCov")
   
   ign.logit = cbind(crps.SmoothDirect$ign,
                      crps.synthLogit1$ign, crps.synthLogit2$ign, crps.synthLinear1$ign, crps.synthLinear2$ign,
-                     crps.noSpace.cov$ign,
+                     crps.fixed$ign, crps.noSpace.cov$ign,
                      crps.admin1.iid.noCov$ign, crps.admin1.iid.cov$ign, crps.admin1.bym.noCov$ign, crps.admin1.bym.cov$ign,
-                     crps.admin2.bym.noCov$ign, crps.admin2.bym.cov$ign)
+                     crps.admin2.bym.noCov$ign, crps.admin2.bym.cov$ign,
+                    crps.spde.noCov$ign)
   colnames(ign.logit) = c("SmoothDirect",
-                           "S-Lin1", "S-Lin2", "S-Logit1", "S-Logit2",
-                           "NoSpace-Cov",
-                           "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
-                           "A2-BYM-noCov", "A2-BYM-Cov")
+                          "S-Logit", "S-Logit2", "S-Lin1", "S-Lin2",
+                          "NoSpace-UR", "NoSpace-Cov",
+                          "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
+                          "A2-BYM-noCov", "A2-BYM-Cov",
+                          "GRF-noCov")
   
   compCov = function(fixed.holdOut, direct.est){
     return(sum((fixed.holdOut$admin1$p_Low < direct.est$p_Med) & (fixed.holdOut$admin1$p_Upp > direct.est$p_Med))/37*100)
   }
   
+  cov.fixed = sum((fixed.holdOut$overD$p_Low < direct.est$p_Med) & (fixed.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
   cov.noSpace.cov = compCov(noSpace.cov, direct.est)
   
   cov.admin1.iid.noCov = compCov(admin1.iid.noCov, direct.est)
@@ -887,6 +910,8 @@ for(cvFold in 1:10){
   cov.admin2.bym.noCov = compCov(admin2.bym.noCov, direct.est)
   cov.admin2.bym.cov = compCov(admin2.bym.cov, direct.est)
   
+  cov.spde.noCov = sum((allLevels.spde.holdOut$overD$p_Low < direct.est$p_Med) & (allLevels.spde.holdOut$overD$p_Upp > direct.est$p_Med))/37*100
+  
   cov.synthLogit1 = compCov(synthLogit1, direct.est)
   cov.synthLogit2 = compCov(synthLogit2, direct.est)
   cov.synthLinear1 = compCov(synthLinear1, direct.est)
@@ -896,14 +921,23 @@ for(cvFold in 1:10){
   
   coverAdm1 = cbind(cov.SmoothDirect,
                     cov.synthLogit1, cov.synthLogit2, cov.synthLinear1, cov.synthLinear2,
-                    cov.noSpace.cov,
+                    cov.fixed, cov.noSpace.cov,
                     cov.admin1.iid.noCov, cov.admin1.iid.cov, cov.admin1.bym.noCov, cov.admin1.bym.cov,
-                    cov.admin2.bym.noCov, cov.admin2.bym.cov)
-  colnames(coverAdm1) = c("SmoothDirect",
-                          "S-Lin1", "S-Lin2", "S-Logit1", "S-Logit2",
-                          "NoSpace-Cov",
+                    cov.admin2.bym.noCov, cov.admin2.bym.cov,
+                    cov.spde.noCov)
+  colnames(coverAdm1) =  
+    ign.logit = cbind(crps.SmoothDirect$ign,
+                      crps.synthLogit1$ign, crps.synthLogit2$ign, crps.synthLinear1$ign, crps.synthLinear2$ign,
+                      crps.fixed$ign, crps.noSpace.cov$ign,
+                      crps.admin1.iid.noCov$ign, crps.admin1.iid.cov$ign, crps.admin1.bym.noCov$ign, crps.admin1.bym.cov$ign,
+                      crps.admin2.bym.noCov$ign, crps.admin2.bym.cov$ign,
+                      crps.spde.noCov$ign)
+  colnames(ign.logit) = c("SmoothDirect",
+                          "S-Logit", "S-Logit2", "S-Lin1", "S-Lin2",
+                          "NoSpace-UR", "NoSpace-Cov",
                           "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
-                          "A2-BYM-noCov", "A2-BYM-Cov")
+                          "A2-BYM-noCov", "A2-BYM-Cov",
+                          "GRF-noCov")
   
   # Full table
   scores.logit = rbind(mse.logit, crps.logit, ign.logit, coverAdm1)
