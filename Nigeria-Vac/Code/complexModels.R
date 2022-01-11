@@ -4,6 +4,43 @@
 # author: Geir-Arne Fuglstad <geir-arne.fuglstad@ntnu.no>                     #
 ###############################################################################
 
+# Areal models
+runArealDirect = function(myData,
+                          nigeriaGraph_admin1,
+                          direct.est,
+                          rEffect,
+                          xCov = NULL,
+                          rPrior){
+  # Compute full estimate
+  smooth.direct = getNigeriaSmoothDirect(nigeriaGraph_admin1 = nigeriaGraph_admin1,
+                                         direct.est = direct.est,
+                                         rEffect = rEffect,
+                                         xCov = xCov,
+                                         rPrior = rPrior)
+
+  # Compute hold-out estimates
+  smooth.direct.holdOut = smooth.direct
+  for(i in 1:dim(smooth.direct.holdOut)[1]){
+    # Remove data from region i
+    tmpData = direct.est
+    tmpData$logitP[i] = NA
+    tmpData$se[i] = 1
+    
+    # Fit model
+    tmpRes = getNigeriaSmoothDirect(nigeriaGraph_admin1 = nigeriaGraph_admin1,
+                                    direct.est = tmpData,
+                                    rEffect = rEffect,
+                                    xCov = xCov,
+                                    rPrior = rPrior)
+    
+    # Extract estimate
+    smooth.direct.holdOut[i,] = tmpRes[i,]
+  }
+  
+  return(list(res = smooth.direct,
+              res.holdOut = smooth.direct.holdOut))
+}
+
 # Smooth direct model
 runSmoothDirect = function(myData, nigeriaGraph_admin1, direct.est){
   print("Computing smoothed direct estimates...")

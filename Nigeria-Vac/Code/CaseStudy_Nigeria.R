@@ -222,13 +222,57 @@ save.image("Partial_Covariates.RData")
 ################################################################################
 ## Smoothed direct #############################################################
 ################################################################################
-  print("Computing smoothed direct estimates...")
-  # Set prior
-  bym2prior = list(prec = list(param = c(1, 0.05)),
-                   phi  = list(param = c(0.5, 0.5)))
-  
-  # Run model+holdout
-  res.SmoothDirect = runSmoothDirect(myData, nigeriaGraph_admin1, direct.est)
+  print("Computing Fay-Herriot estimates...")
+  ## Set-up
+    # Get areal covariates
+    nameAdm1 = c()
+    for(i in 1:774){
+      nameAdm1 = c(nameAdm1, strsplit(nameVec[i], ":")[[1]][1])
+    }
+    areaX = computeArealCov(popList = nigeriaPop,
+                            nameAdm1 = nameAdm1,
+                            listCov = listCov)
+    
+  ## IID
+    iidPrior = list(prec = list(param = c(1, 0.05),
+                                prior = "pc.prec"))
+    SmoothDirect.iid = runArealDirect(myData = myData,
+                                      nigeriaGraph_admin1 = nigeriaGraph_admin1,
+                                      direct.est = direct.est,
+                                      rEffect = "iid",
+                                      xCov = NULL,
+                                      rPrior = iidPrior)
+    
+  ## IID + Cov
+    iidPrior = list(prec = list(param = c(1, 0.05),
+                                prior = "pc.prec"))
+    SmoothDirect.iid.cov = runArealDirect(myData = myData,
+                                          nigeriaGraph_admin1 = nigeriaGraph_admin1,
+                                          direct.est = direct.est,
+                                          rEffect = "iid",
+                                          xCov = areaX$admin1.cov,
+                                          rPrior = iidPrior)
+    
+    ## BYM
+    bym2prior = list(prec = list(param = c(1, 0.05)),
+                     phi  = list(param = c(0.5, 0.5)))
+    SmoothDirect.bym = runArealDirect(myData = myData,
+                                      nigeriaGraph_admin1 = nigeriaGraph_admin1,
+                                      direct.est = direct.est,
+                                      rEffect = "bym",
+                                      xCov = NULL,
+                                      rPrior = bym2prior)
+    
+    ## BYM + Cov
+    bym2prior = list(prec = list(param = c(1, 0.05)),
+                     phi  = list(param = c(0.5, 0.5)))
+    SmoothDirect.bym.cov = runArealDirect(myData = myData,
+                                          nigeriaGraph_admin1 = nigeriaGraph_admin1,
+                                          direct.est = direct.est,
+                                          rEffect = "bym",
+                                          xCov = areaX$admin1.cov,
+                                          rPrior = bym2prior)
+
 save.image("Partial_DirectSmooth.RData")
 ################################################################################
 ## Synthetic estimates #########################################################

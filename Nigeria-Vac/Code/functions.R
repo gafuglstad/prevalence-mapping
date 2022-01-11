@@ -407,18 +407,52 @@ getNigeriaSyntheticLinear = function(myData, popList, nameAdm1, nSamp = 1000, on
 }
 
 # Compute smoothed direct
-getNigeriaSmoothDirect = function(direct.est, nigeriaGraph, bym2prior){
+getNigeriaSmoothDirect = function(nigeriaGraph_admin1,
+                                  direct.est,
+                                  rEffect,
+                                  xCov = NULL,
+                                  rPrior){
   # make dataobject
   smoothed.data = data.frame(y = direct.est$logitP,
                              se = direct.est$se,
                              idxAdmin1 = 1:37)
+  if(!is.null(xCov)){
+    colnames(xCov) = c("X1", "X2", "X3", "X4", "X5")
+    smoothed.data = cbind(smoothed.data, xCov)
+  }
   
   # Formula
-  smoothed.formula = y ~ 1 + f(idxAdmin1,
-                               model = "bym2",
-                               graph = nigeriaGraph,
-                               hyper = bym2prior,
-                               scale.model = TRUE)
+  if(!is.null(xCov)){
+    if(rEffect == "iid"){
+      smoothed.formula = y ~ 1 + X1 + X2 + X3 + X4 + X5 +
+        f(idxAdmin1,
+          model = "iid",
+          graph = nigeriaGraph,
+          hyper = rPrior)
+    }
+    if(rEffect == "bym"){
+      smoothed.formula = y ~ 1 + X1 + X2 + X3 + X4 + X5 +
+        f(idxAdmin1,
+          model = "bym2",
+          graph = nigeriaGraph,
+          hyper = rPrior,
+          scale.model = TRUE)
+    }
+  } else{
+    if(rEffect == "iid"){
+      smoothed.formula = y ~ 1 + f(idxAdmin1,
+                                   model = "iid",
+                                   graph = nigeriaGraph,
+                                   hyper = rPrior)
+    }
+    if(rEffect == "bym"){
+      smoothed.formula = y ~ 1 + f(idxAdmin1,
+                                   model = "bym2",
+                                   graph = nigeriaGraph,
+                                   hyper = rPrior,
+                                   scale.model = TRUE)
+    }
+  }
   
   # Run model
   smoothed.inla.res = inla(formula = smoothed.formula,
@@ -1760,4 +1794,68 @@ aggUnitLevel = function(res.inla,
               samples = list(p = admin1,
                              pRur = admin1.rur,
                              pUrb = admin1.urb)))
+}
+
+computeArealCov = function(popList, nameAdm1, listCov){
+  # Iterate through admin2 areas
+  admin2.cov = matrix(NA, nrow = 774, ncol = 5)
+  for(i in 1:774){
+    # Urban indicies & cell numbers from raster
+    idxUrb = popList$idxUrb[[i]]
+    cellNum = popList$popAdm2.2018[[i]][[1]][,1]
+    
+    # Get x and y coordinates
+    pop2018 = raster("../Data/Nigeria_pop/nga_ppp_2018_UNadj.tif")
+    xyCor = xyFromCell(pop2018, cell = cellNum)
+    
+    # Get covariate values
+    tmpDesign1 = raster::extract(x = listCov[[1]]$raster,
+                                 y = xyCor)
+    tmpDesign2 = raster::extract(x = listCov[[2]]$raster,
+                                 y = xyCor)
+    Xdesign = cbind(idxUrb+0, tmpDesign1, tmpDesign2, tmpDesign1*(idxUrb+0), tmpDesign2*(idxUrb+0))
+    
+    # Full resolution
+    idxSub = 1:dim(Xdesign)[1]
+    idxSub = idxSub[!is.na(popList$popAdm2.2018[[i]][[2]][idxSub])]
+    for(j in 1:length(listCov)){
+      idxSub = idxSub[!is.na(Xdesign[idxSub,j])]
+    }
+    inSample = rep(FALSE, dim(Xdesign)[1])
+    inSample[idxSub] = TRUE
+    Xdesign = Xdesign[idxSub,]
+    
+    # Get populations
+    urbPop = sum(popList$popAdm2.2018[[i]][[2]][inSample & idxUrb], na.rm = TRUE)
+    rurPop = sum(popList$popAdm2.2018[[i]][[2]][inSample & !idxUrb], na.rm = TRUE)
+    
+    # Calculate samples
+    localSamples = Xdesign*kronecker(matrix(1, nrow = 1, ncol = dim(Xdesign)[2]), matrix(popList$popAdm2.2018[[i]][[2]][idxSub], nrow = length(idxSub), ncol = 1))
+    
+    # Save in data object
+    admin2.cov[i, ] = colSums(localSamples, na.rm = TRUE)/(urbPop+rurPop)
+  }
+  
+  # Iterate through admin2 areas
+  admin1.cov = matrix(0, nrow = 37, ncol = 5)
+  unNameAdm1 = unique(nameAdm1)
+  for(i in 1:37){
+    # Get indicies of admin2 areas
+    idxAdm2 = which(nameAdm1 == unNameAdm1[i])
+    totUrb = 0
+    totRur = 0
+    for(k in idxAdm2){
+      idxUrb = popList$idxUrb[[k]]
+      currUrb = sum(popList$popAdm2.2018[[k]][[2]][idxUrb], na.rm = TRUE)
+      currRur = sum(popList$popAdm2.2018[[k]][[2]][!idxUrb], na.rm = TRUE)
+      totUrb = totUrb + currUrb
+      totRur = totRur + currRur
+      
+      admin1.cov[i,] = admin1.cov[i,] + admin2.cov[k,]*(currUrb+currRur)
+    }
+    admin1.cov[i,] = admin1.cov[i,]/(totUrb+totRur)
+  }
+  
+  return(list(admin1.cov = admin1.cov,
+              admin2.cov = admin2.cov))
 }
