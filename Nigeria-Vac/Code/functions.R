@@ -427,14 +427,13 @@ getNigeriaSmoothDirect = function(nigeriaGraph_admin1,
       smoothed.formula = y ~ 1 + X1 + X2 + X3 + X4 + X5 +
         f(idxAdmin1,
           model = "iid",
-          graph = nigeriaGraph,
           hyper = rPrior)
     }
     if(rEffect == "bym"){
       smoothed.formula = y ~ 1 + X1 + X2 + X3 + X4 + X5 +
         f(idxAdmin1,
           model = "bym2",
-          graph = nigeriaGraph,
+          graph = nigeriaGraph_admin1,
           hyper = rPrior,
           scale.model = TRUE)
     }
@@ -442,13 +441,12 @@ getNigeriaSmoothDirect = function(nigeriaGraph_admin1,
     if(rEffect == "iid"){
       smoothed.formula = y ~ 1 + f(idxAdmin1,
                                    model = "iid",
-                                   graph = nigeriaGraph,
                                    hyper = rPrior)
     }
     if(rEffect == "bym"){
       smoothed.formula = y ~ 1 + f(idxAdmin1,
                                    model = "bym2",
-                                   graph = nigeriaGraph,
+                                   graph = nigeriaGraph_admin1,
                                    hyper = rPrior,
                                    scale.model = TRUE)
     }

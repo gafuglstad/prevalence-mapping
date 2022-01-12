@@ -236,7 +236,7 @@ save.image("Partial_Covariates.RData")
   ## IID
     iidPrior = list(prec = list(param = c(1, 0.05),
                                 prior = "pc.prec"))
-    SmoothDirect.iid = runArealDirect(myData = myData,
+    res.SmoothDirect.iid = runArealDirect(myData = myData,
                                       nigeriaGraph_admin1 = nigeriaGraph_admin1,
                                       direct.est = direct.est,
                                       rEffect = "iid",
@@ -246,7 +246,7 @@ save.image("Partial_Covariates.RData")
   ## IID + Cov
     iidPrior = list(prec = list(param = c(1, 0.05),
                                 prior = "pc.prec"))
-    SmoothDirect.iid.cov = runArealDirect(myData = myData,
+    res.SmoothDirect.iid.cov = runArealDirect(myData = myData,
                                           nigeriaGraph_admin1 = nigeriaGraph_admin1,
                                           direct.est = direct.est,
                                           rEffect = "iid",
@@ -256,7 +256,7 @@ save.image("Partial_Covariates.RData")
     ## BYM
     bym2prior = list(prec = list(param = c(1, 0.05)),
                      phi  = list(param = c(0.5, 0.5)))
-    SmoothDirect.bym = runArealDirect(myData = myData,
+    res.SmoothDirect.bym = runArealDirect(myData = myData,
                                       nigeriaGraph_admin1 = nigeriaGraph_admin1,
                                       direct.est = direct.est,
                                       rEffect = "bym",
@@ -266,7 +266,7 @@ save.image("Partial_Covariates.RData")
     ## BYM + Cov
     bym2prior = list(prec = list(param = c(1, 0.05)),
                      phi  = list(param = c(0.5, 0.5)))
-    SmoothDirect.bym.cov = runArealDirect(myData = myData,
+    res.SmoothDirect.bym.cov = runArealDirect(myData = myData,
                                           nigeriaGraph_admin1 = nigeriaGraph_admin1,
                                           direct.est = direct.est,
                                           rEffect = "bym",
@@ -835,7 +835,10 @@ for(cvFold in 1:10){
   synthLinear1 = res.synthLinear1$res.holdOut
   synthLinear2 = res.synthLinear2$res.holdOut
   
-  SmoothDirect = res.SmoothDirect$res.holdOut      
+  SmoothDirect.iid = res.SmoothDirect.iid$res.holdOut
+  SmoothDirect.iid.cov = res.SmoothDirect.iid.cov$res.holdOut
+  SmoothDirect.bym = res.SmoothDirect.bym$res.holdOut
+  SmoothDirect.bym.cov = res.SmoothDirect.bym.cov$res.holdOut
   
   # Hold-out state MSE
   mse.fixed = mean((logit(direct.est$p_Med)-logit(fixed.holdOut$overD$p_Med))^2)
@@ -857,15 +860,18 @@ for(cvFold in 1:10){
   mse.synthLinear1 = mean((logit(direct.est$p_Med)-logit(synthLinear1$admin1$p_Med))^2)
   mse.synthLinear2 = mean((logit(direct.est$p_Med)-logit(synthLinear2$admin1$p_Med))^2)
   
-  mse.SmoothDirect = mean((logit(direct.est$p_Med)-SmoothDirect$logitP)^2)
+  mse.SmoothDirect.iid = mean((logit(direct.est$p_Med)-SmoothDirect.iid$logitP)^2)
+  mse.SmoothDirect.iid.cov = mean((logit(direct.est$p_Med)-SmoothDirect.iid.cov$logitP)^2)
+  mse.SmoothDirect.bym = mean((logit(direct.est$p_Med)-SmoothDirect.bym$logitP)^2)
+  mse.SmoothDirect.bym.cov = mean((logit(direct.est$p_Med)-SmoothDirect.bym.cov$logitP)^2)
   
-  mse.logit = cbind(mse.SmoothDirect,
+  mse.logit = cbind(mse.SmoothDirect.iid, mse.SmoothDirect.iid.cov, mse.SmoothDirect.bym, mse.SmoothDirect.bym.cov,
                     mse.synthLogit1, mse.synthLogit2, mse.synthLinear1, mse.synthLinear2,
                     mse.fixed, mse.noSpace.cov,
                     mse.admin1.iid.noCov, mse.admin1.iid.cov, mse.admin1.bym.noCov, mse.admin1.bym.cov,
                     mse.admin2.bym.noCov, mse.admin2.bym.cov,
                     mse.spde.noCov, mse.spde.cov)
-  colnames(mse.logit) = c("SmoothDirect",
+  colnames(mse.logit) = c("FH-IID", "FH-IID-Cov", "FH-BYM", "FH-BYM-Cov",
                           "S-Logit", "S-Logit2", "S-Lin1", "S-Lin2",
                           "NoSpace-UR", "NoSpace-Cov",
                           "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
@@ -914,32 +920,50 @@ for(cvFold in 1:10){
   crps.synthLinear1 = compCRPS(synthLinear1, direct.est)
   crps.synthLinear2 = compCRPS(synthLinear2, direct.est)
   
-  mu = SmoothDirect$logitP
-  stdDev = sqrt(direct.est$se^2 + SmoothDirect$sd^2)
+  mu = SmoothDirect.iid$logitP
+  stdDev = sqrt(direct.est$se^2 + SmoothDirect.iid$sd^2)
   crps.logit.fixed = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
-  crps.SmoothDirect = list(crps = crps.logit.fixed$CRPS,
-                           ign = crps.logit.fixed$IGN)
+  crps.SmoothDirect.iid = list(crps = crps.logit.fixed$CRPS,
+                               ign = crps.logit.fixed$IGN)
   
-  crps.logit = cbind(crps.SmoothDirect$crps,
+  mu = SmoothDirect.iid.cov$logitP
+  stdDev = sqrt(direct.est$se^2 + SmoothDirect.iid.cov$sd^2)
+  crps.logit.fixed = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
+  crps.SmoothDirect.iid.cov = list(crps = crps.logit.fixed$CRPS,
+                                   ign = crps.logit.fixed$IGN)
+  
+  mu = SmoothDirect.bym$logitP
+  stdDev = sqrt(direct.est$se^2 + SmoothDirect.bym$sd^2)
+  crps.logit.fixed = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
+  crps.SmoothDirect.bym = list(crps = crps.logit.fixed$CRPS,
+                               ign = crps.logit.fixed$IGN)
+  
+  mu = SmoothDirect.bym.cov$logitP
+  stdDev = sqrt(direct.est$se^2 + SmoothDirect.bym.cov$sd^2)
+  crps.logit.fixed = verification:::crps(direct.est$logitP, cbind(mu, stdDev))
+  crps.SmoothDirect.bym.cov = list(crps = crps.logit.fixed$CRPS,
+                                   ign = crps.logit.fixed$IGN)
+  
+  crps.logit = cbind(crps.SmoothDirect.iid$crps, crps.SmoothDirect.iid.cov$crps, crps.SmoothDirect.bym$crps, crps.SmoothDirect.bym.cov$crps,
                     crps.synthLogit1$crps, crps.synthLogit2$crps, crps.synthLinear1$crps, crps.synthLinear2$crps,
                     crps.fixed$crps, crps.noSpace.cov$crps,
                     crps.admin1.iid.noCov$crps, crps.admin1.iid.cov$crps, crps.admin1.bym.noCov$crps, crps.admin1.bym.cov$crps,
                     crps.admin2.bym.noCov$crps, crps.admin2.bym.cov$crps,
                     crps.spde.noCov$crps, crps.spde.cov$crps)
-  colnames(crps.logit) = c("SmoothDirect",
+  colnames(crps.logit) = c("FH-IID", "FH-IID-Cov", "FH-BYM", "FH-BYM-Cov",
                            "S-Logit", "S-Logit2", "S-Lin1", "S-Lin2",
                            "NoSpace-UR", "NoSpace-Cov",
                            "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
                            "A2-BYM-noCov", "A2-BYM-Cov",
                            "GRF-noCov", "GRF-Cov")
   
-  ign.logit = cbind(crps.SmoothDirect$ign,
+  ign.logit = cbind(crps.SmoothDirect.iid$ign, crps.SmoothDirect.iid.cov$ign, crps.SmoothDirect.bym$ign, crps.SmoothDirect.bym.cov$ign,
                      crps.synthLogit1$ign, crps.synthLogit2$ign, crps.synthLinear1$ign, crps.synthLinear2$ign,
                      crps.fixed$ign, crps.noSpace.cov$ign,
                      crps.admin1.iid.noCov$ign, crps.admin1.iid.cov$ign, crps.admin1.bym.noCov$ign, crps.admin1.bym.cov$ign,
                      crps.admin2.bym.noCov$ign, crps.admin2.bym.cov$ign,
                     crps.spde.noCov$ign, crps.spde.cov$ign)
-  colnames(ign.logit) = c("SmoothDirect",
+  colnames(ign.logit) = c("FH-IID", "FH-IID-Cov", "FH-BYM", "FH-BYM-Cov",
                           "S-Logit", "S-Logit2", "S-Lin1", "S-Lin2",
                           "NoSpace-UR", "NoSpace-Cov",
                           "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
@@ -969,15 +993,18 @@ for(cvFold in 1:10){
   cov.synthLinear1 = compCov(synthLinear1, direct.est)
   cov.synthLinear2 = compCov(synthLinear2, direct.est)
   
-  cov.SmoothDirect = compCov(list(admin1 = SmoothDirect), direct.est)
+  cov.SmoothDirect.iid = compCov(list(admin1 = SmoothDirect.iid), direct.est)
+  cov.SmoothDirect.iid.cov = compCov(list(admin1 = SmoothDirect.iid.cov), direct.est)
+  cov.SmoothDirect.bym = compCov(list(admin1 = SmoothDirect.bym), direct.est)
+  cov.SmoothDirect.bym.cov = compCov(list(admin1 = SmoothDirect.bym.cov), direct.est)
   
-  coverAdm1 = cbind(cov.SmoothDirect,
+  coverAdm1 = cbind(cov.SmoothDirect.iid, cov.SmoothDirect.iid.cov, cov.SmoothDirect.bym, cov.SmoothDirect.bym.cov,
                     cov.synthLogit1, cov.synthLogit2, cov.synthLinear1, cov.synthLinear2,
                     cov.fixed, cov.noSpace.cov,
                     cov.admin1.iid.noCov, cov.admin1.iid.cov, cov.admin1.bym.noCov, cov.admin1.bym.cov,
                     cov.admin2.bym.noCov, cov.admin2.bym.cov,
                     cov.spde.noCov, cov.spde.cov)
-  colnames(coverAdm1) =  c("SmoothDirect",
+  colnames(coverAdm1) =  c("FH-IID", "FH-IID-Cov", "FH-BYM", "FH-BYM-Cov",
                            "S-Logit", "S-Logit2", "S-Lin1", "S-Lin2",
                            "NoSpace-UR", "NoSpace-Cov",
                            "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
