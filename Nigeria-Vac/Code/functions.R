@@ -13,7 +13,7 @@ library(readxl)
 
 
 # Extract covariates from an appropriately organized raster
-getCovariate = getPop = function(fName, obsLoc){
+getCovariate = function(fName, obsLoc){
   # Covariate raster
   covRaster = raster(fName)
   
