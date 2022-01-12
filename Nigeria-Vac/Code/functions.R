@@ -980,7 +980,11 @@ aggBYM_admin1 = function(res.inla, popList, myData, nSamp = 1000, space = TRUE){
       
       # Nugget is real
       nugSimUrb = rnorm(clustNumUrb[j], mean = 0, sd = 1/sqrt(post.sample[[i]]$hyperpar[nuggetIdx]))
-      nugSimRur = rnorm(clustNumRur[j], mean = 0, sd = 1/sqrt(post.sample[[i]]$hyperpar[nuggetIdx]))
+      if(clustNumRur[j] > 0){
+        nugSimRur = rnorm(clustNumRur[j], mean = 0, sd = 1/sqrt(post.sample[[i]]$hyperpar[nuggetIdx]))
+      } else{
+        nugSimRur = 0
+      }
       etaUrb.real[i,j] = logit(mean(expit(etaUrb.meas[i,j] + nugSimUrb)))
       etaRur.real[i,j] = logit(mean(expit(etaRur.meas[i,j] + nugSimRur)))
       
