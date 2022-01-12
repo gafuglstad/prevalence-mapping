@@ -865,10 +865,10 @@ for(cvFold in 1:10){
   # Extract results
   idxNum = which(idx == TRUE)
   uniqueCl = unique(myData$clusterIdx[idxNum])
-  for(i in 1:length(cvResults$admin1$cIdx)){
-    if(cvResults$admin1$cIdx[i]%in%uniqueCl){
+  for(i in 1:length(cvSummary$NoSpace$cIdx)){
+    if(cvSummary$NoSpace$cIdx[i]%in%uniqueCl){
       idxRep = newData$idx[i]
-      cvSummary$NoSpace$mean[i] = cv.NoSpace$summary.linear.predictor$mean[idxRep]
+      cvSummary$NoSpace$mean[i] = cv.inla.NoSpace$summary.linear.predictor$mean[idxRep]
       cvSummary$NoSpace.cov$mean[i] = cv.NoSpace.cov$summary.linear.predictor$mean[idxRep]
       cvSummary$A1.iid$mean[i] = cv.admin1.iid$summary.linear.predictor$mean[idxRep]
       cvSummary$A1.iid.cov$mean[i] = cv.admin1.iid.cov$summary.linear.predictor$mean[idxRep]
@@ -879,7 +879,7 @@ for(cvFold in 1:10){
       cvSummary$GRF$mean[i] = cv.spde$summary.linear.predictor$mean[idxRep]
       cvSummary$GRF.cov$mean[i] = cv.spde.cov$summary.linear.predictor$mean[idxRep]
       
-      cvSummary$NoSpace$sd[i] = cv.NoSpace$summary.linear.predictor$sd[idxRep]
+      cvSummary$NoSpace$sd[i] = cv.inla.NoSpace$summary.linear.predictor$sd[idxRep]
       cvSummary$NoSpace.cov$sd[i] = cv.NoSpace.cov$summary.linear.predictor$sd[idxRep]
       cvSummary$A1.iid$sd[i] = cv.admin1.iid$summary.linear.predictor$sd[idxRep]
       cvSummary$A1.iid.cov$sd[i] = cv.admin1.iid.cov$summary.linear.predictor$sd[idxRep]
@@ -890,7 +890,7 @@ for(cvFold in 1:10){
       cvSummary$GRF$sd[i] = cv.spde$summary.linear.predictor$sd[idxRep]
       cvSummary$GRF.cov$sd[i] = cv.spde.cov$summary.linear.predictor$sd[idxRep]
       
-      cvMarginal$NoSpace[[i]] = cv.NoSpace$marginals.linear.predictor[[idxRep]]
+      cvMarginal$NoSpace[[i]] = cv.inla.NoSpace$marginals.linear.predictor[[idxRep]]
       cvMarginal$NoSpace.cov[[i]] = cv.NoSpace.cov$marginals.linear.predictor[[idxRep]]
       cvMarginal$A1.iid[[i]] = cv.admin1.iid$marginals.linear.predictor[[idxRep]]
       cvMarginal$A1.iid.cov[[i]] = cv.admin1.iid.cov$marginals.linear.predictor[[idxRep]]
@@ -910,27 +910,13 @@ for(cvFold in 1:10){
   setEPS()
   postscript("Figures/compareAggAssumptions_abs.eps")
   par(mar = c(5, 4.5, 4, 2) + 0.1)
-  plot(admin1.bym$overD$p_Med, admin1.bym$meas$p_Med-admin1.bym$overD$p_Med, 
+  plot(res.admin1.old$est$overD$p_Med, res.admin1.old$est$meas$p_Med-res.admin1.old$est$overD$p_Med, 
        lwd = 3,
        cex.axis = 2, cex.lab = 2, cex = 1.5,
        xlab = "Overdispersion", ylab = "Absolute difference",
        bty = "l")
   abline(h = 0, lwd = 3)
-  points(admin1.bym$overD$p_Med, admin1.bym$real$p_Med-admin1.bym$overD$p_Med,
-         col = "red", lwd = 3, pch = 4, cex = 1.5)
-  legend('bottomright', legend = c("Measurement error", "True signal"),
-         col = c("black", "red"), pch = c(1, 4), cex = 1.5, lwd = 3, lty = 0)
-  dev.off()
-  
-  postscript('Figures/compareNugAssumption_relative.eps')
-  par(mar = c(5, 4.5, 4, 2) + 0.1)
-  plot(admin1.bym$overD$p_Med, (admin1.bym$meas$p_Med-admin1.bym$overD$p_Med)/admin1.bym$overD$p_Med*100, 
-       lwd = 3,
-       cex.axis = 2, cex.lab = 2, cex = 1.5,
-       xlab = "Overdispersion", ylab = "Relative difference (%)",
-       bty = "l")
-  abline(h = 0, lwd = 3)
-  points(admin1.bym$overD$p_Med, (admin1.bym$real$p_Med-admin1.bym$overD$p_Med)/admin1.bym$overD$p_Med*100,
+  points(res.admin1.old$est$overD$p_Med, res.admin1.old$est$real$p_Med-res.admin1.old$est$overD$p_Med,
          col = "red", lwd = 3, pch = 4, cex = 1.5)
   legend('bottomright', legend = c("Measurement error", "True signal"),
          col = c("black", "red"), pch = c(1, 4), cex = 1.5, lwd = 3, lty = 0)
@@ -1130,10 +1116,47 @@ for(cvFold in 1:10){
                            "A2-BYM-noCov", "A2-BYM-Cov",
                            "GRF-noCov", "GRF-Cov")
 
+  # Average length of credible intervals
+  av.fixed = mean(logit(fixed.holdOut$overD$p_Upp) - logit(fixed.holdOut$overD$p_Low))
+  av.noSpace.cov = mean(logit(noSpace.cov$admin1$p_Upp) - logit(noSpace.cov$admin1$p_Low))
+  
+  av.admin1.iid.noCov = mean(logit(admin1.iid.noCov$admin1$p_Upp) - logit(admin1.iid.noCov$admin1$p_Low))
+  av.admin1.iid.cov = mean(logit(admin1.iid.cov$admin1$p_Upp) - logit(admin1.iid.cov$admin1$p_Low))
+  av.admin1.bym.noCov = mean(logit(admin1.bym.noCov$admin1$p_Upp) - logit(admin1.bym.noCov$admin1$p_Low))
+  av.admin1.bym.cov = mean(logit(admin1.bym.cov$admin1$p_Upp) - logit(admin1.bym.cov$admin1$p_Low))
+  
+  av.admin2.bym.noCov = mean(logit(admin2.bym.noCov$admin1$p_Upp) - logit(admin2.bym.noCov$admin1$p_Low))
+  av.admin2.bym.cov = mean(logit(admin2.bym.cov$admin1$p_Upp) - logit(admin2.bym.cov$admin1$p_Low))
+  
+  av.spde.noCov = mean(logit(allLevels.spde.holdOut$overD$p_Upp) - logit(allLevels.spde.holdOut$overD$p_Low))
+  av.spde.cov = mean(logit(allLevels.spdeCov.holdOut$overD$p_Upp) - logit(allLevels.spdeCov.holdOut$overD$p_Low))
+  
+  av.synthLogit1 = mean(logit(synthLogit1$admin1$p_Upp) - logit(synthLogit1$admin1$p_Low))
+  av.synthLogit2 = mean(logit(synthLogit2$admin1$p_Upp) - logit(synthLogit2$admin1$p_Low))
+  av.synthLinear1 = mean(logit(synthLinear1$admin1$p_Upp) - logit(synthLinear1$admin1$p_Low))
+  av.synthLinear2 = mean(logit(synthLinear2$admin1$p_Upp) - logit(synthLinear2$admin1$p_Low))
+  
+  av.SmoothDirect.iid = mean(logit(SmoothDirect.iid$p_Upp) - logit(SmoothDirect.iid$p_Low))
+  av.SmoothDirect.iid.cov = mean(logit(SmoothDirect.iid.cov$p_Upp) - logit(SmoothDirect.iid.cov$p_Low))
+  av.SmoothDirect.bym = mean(logit(SmoothDirect.bym$p_Upp) - logit(SmoothDirect.bym$p_Low))
+  av.SmoothDirect.bym.cov = mean(logit(SmoothDirect.bym.cov$p_Upp) - logit(SmoothDirect.bym.cov$p_Low))
+  
+  avAdm1 = cbind(av.SmoothDirect.iid, av.SmoothDirect.iid.cov, av.SmoothDirect.bym, av.SmoothDirect.bym.cov,
+                    av.synthLogit1, av.synthLogit2, av.synthLinear1, av.synthLinear2,
+                    av.fixed, av.noSpace.cov,
+                    av.admin1.iid.noCov, av.admin1.iid.cov, av.admin1.bym.noCov, av.admin1.bym.cov,
+                    av.admin2.bym.noCov, av.admin2.bym.cov,
+                    av.spde.noCov, av.spde.cov)
+  colnames(avAdm1) =  c("FH-IID", "FH-IID-Cov", "FH-BYM", "FH-BYM-Cov",
+                           "S-Logit", "S-Logit2", "S-Lin1", "S-Lin2",
+                           "NoSpace-UR", "NoSpace-Cov",
+                           "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
+                           "A2-BYM-noCov", "A2-BYM-Cov",
+                           "GRF-noCov", "GRF-Cov")
   
   # Full table
-  scores.logit = rbind(mse.logit, crps.logit, ign.logit, coverAdm1)
-  row.names(scores.logit) = c("MSE", "CRPS", "Log-score","Coverage")
+  scores.logit = rbind(mse.logit, crps.logit, ign.logit, coverAdm1, avAdm1)
+  row.names(scores.logit) = c("MSE", "CRPS", "Log-score","Coverage", "Avg. Len. (95%)")
   scores.logit = t(scores.logit)
   print(round(scores.logit, 2))
   
