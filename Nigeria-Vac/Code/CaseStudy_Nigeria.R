@@ -698,30 +698,35 @@ for(i in 1:10){
   cvIdx[,i+1] = FALSE
   cvIdx[floor(nCl/10*(i-1)+1):floor(nCl/10*i),i+1] = TRUE
 }
+set.seed(14324)
 idxShift = sample.int(n = nrow(cvIdx), size = nrow(cvIdx))
 
 
-cvResults = list(admin1 = data.frame(cIdx = newData$cIdx,
-                                     mean = NA,
-                                     sd = NA),
-                 admin1.marg = inla.admin1$marginals.linear.predictor[1:nrow(myData)],
-                 admin2 = data.frame(cIdx = newData$cIdx,
-                               mean = NA,
-                               sd = NA),
-                 admin2.marg = inla.admin2$marginals.linear.predictor[1:nrow(myData)],
-                 spde = data.frame(cIdx = newData$cIdx,
-                             mean = NA,
-                             sd = NA),
-                 spde.marg = inla.spde$marginals.linear.predictor[1:nrow(myData)],
-                 spdeCov = data.frame(cIdx = newData$cIdx,
-                                      mean = NA,
-                                      sd = NA),
-                 spdeCov.marg = inla.spde$marginals.linear.predictor[1:nrow(myData)],
-                 noSpace = data.frame(cIdx = newData$cIdx,
-                                      mean = NA,
-                                      sd = NA),
-                 noSpace.marg = inla.spde$marginals.linear.predictor[1:nrow(myData)],
-                 folds = cvIdx)
+templateObj = data.frame(cIdx = newData$cIdx,
+                        mean = NA,
+                        sd = NA)
+cvSummary = list(NoSpace = templateObj,
+                 NoSpace.cov = templateObj,
+                 A1.iid = templateObj,
+                 A1.iid.cov = templateObj,
+                 A1.bym = templateObj,
+                 A1.bym.cov = templateObj,
+                 A2.bym = templateObj,
+                 A2.bym.cov = templateObj,
+                 GRF = templateObj,
+                 GRF.cov = templateObj)
+cvMarginal = list(NoSpace = inla.spde$marginals.linear.predictor[1:nrow(myData)],
+                  NoSpace.cov = inla.spde$marginals.linear.predictor[1:nrow(myData)],
+                  A1.iid = inla.spde$marginals.linear.predictor[1:nrow(myData)],
+                  A1.iid.cov = inla.spde$marginals.linear.predictor[1:nrow(myData)],
+                  A1.bym = inla.spde$marginals.linear.predictor[1:nrow(myData)],
+                  A1.bym.cov = inla.spde$marginals.linear.predictor[1:nrow(myData)],
+                  A2.bym = inla.spde$marginals.linear.predictor[1:nrow(myData)],
+                  A2.bym.cov = inla.spde$marginals.linear.predictor[1:nrow(myData)],
+                  GRF = inla.spde$marginals.linear.predictor[1:nrow(myData)],
+                  GRF.cov = inla.spde$marginals.linear.predictor[1:nrow(myData)])
+
+ 
 for(cvFold in 1:10){
   print("Take out fold:")
   print(cvFold)
@@ -732,55 +737,169 @@ for(cvFold in 1:10){
   idx = myData$clusterIdx%in%tmpFold
   tmpData$measles[idx] = NA
   
-  # Fit model
-  inla.admin1.tmp = getAreaLGM(myData = tmpData,
-                               nigeriaGraph = nigeriaGraph_admin1,
-                               bym2prior = bym2prior,
-                               clustPrior = iidPrior)
-
-  inla.admin2.tmp = getAreaLGM(myData = tmpData,
-                               nigeriaGraph = nigeriaGraph,
-                               bym2prior = bym2prior,
-                               clustPrior = iidPrior,
-                               admin2 = TRUE)
-
-  inla.spde.tmp = getContLGM(myData = tmpData,
-                             mesh = mesh,
-                             prior.range = prior.range,
-                             prior.sigma = prior.sigma,
-                             clustPrior = iidPrior)
-  inla.spdeCov.tmp = getContLGM(myData = tmpData,
-                                mesh = mesh,
-                                useCov = TRUE,
-                                prior.range = prior.range,
-                                prior.sigma = prior.sigma,
+  # Priors
+  iidPrior  = list(prec = list(prior = "pc.prec",
+                               param = c(1, 0.05)))
+  bym2prior = list(prec = list(param = c(1, 0.05)),
+                   phi  = list(param = c(0.5, 0.5)))
+  
+  # No space -- no cov
+  cv.inla.NoSpace = getFixedLGM(myData = tmpData,
                                 clustPrior = iidPrior)
   
-  inlaRes = getFixedLGM(tmpData, iidPrior)
-
+  # Covariates + cluster effect
+  cv.NoSpace.cov = runUnitLevel(myData = tmpData,
+                                clustPrior = iidPrior,
+                                randomEffect = "none",
+                                admin2 = FALSE, 
+                                covarModel = TRUE,
+                                nameVec = nameVec,
+                                popList = nigeriaPop,
+                                listCov = listCov,
+                                nSamp = 1000,
+                                holdOut = FALSE)$fit
+  
+  # Intercept + IID(admin1) + cluster effect
+  cv.admin1.iid = runUnitLevel(myData = tmpData,
+                               clustPrior = iidPrior,
+                               areaPrior = iidPrior,
+                               randomEffect = "iid",
+                               admin2 = FALSE, 
+                               covarModel = FALSE,
+                               nameVec = nameVec,
+                               popList = nigeriaPop,
+                               listCov = listCov,
+                               nSamp = 1000,
+                               holdOut = FALSE)$fit
+  
+  # Intercept + BYM2(admin1) + cluster effect
+  cv.admin1.bym = runUnitLevel(myData = tmpData,
+                               clustPrior = iidPrior,
+                               areaPrior = bym2prior,
+                               nigeriaGraph = nigeriaGraph_admin1,
+                               randomEffect = "bym2",
+                               admin2 = FALSE, 
+                               covarModel = FALSE,
+                               nameVec = nameVec,
+                               popList = nigeriaPop,
+                               listCov = listCov,
+                               nSamp = 1000,
+                               holdOut = FALSE)$fit
+  
+  
+  # Covariates + IID(admin1) + cluster effect
+  cv.admin1.iid.cov = runUnitLevel(myData = tmpData,
+                                   clustPrior = iidPrior,
+                                   areaPrior = iidPrior,
+                                   nigeriaGraph = nigeriaGraph_admin1,
+                                   randomEffect = "iid",
+                                   admin2 = FALSE, 
+                                   covarModel = TRUE,
+                                   nameVec = nameVec,
+                                   popList = nigeriaPop,
+                                   listCov = listCov,
+                                   nSamp = 1000,
+                                   holdOut = FALSE)$fit
+  
+  # Covariates + BYM(admin1) + cluster effect
+  cv.admin1.bym.cov = runUnitLevel(myData = tmpData,
+                                   clustPrior = iidPrior,
+                                   areaPrior = bym2prior,
+                                   nigeriaGraph = nigeriaGraph_admin1,
+                                   randomEffect = "bym2",
+                                   admin2 = FALSE, 
+                                   covarModel = TRUE,
+                                   nameVec = nameVec,
+                                   popList = nigeriaPop,
+                                   listCov = listCov,
+                                   nSamp = 1000,
+                                   holdOut = FALSE)$fit
+  
+  # Intercept + BYM2(admin2) + cluster effect
+  cv.admin2.bym = runUnitLevel(myData = tmpData,
+                               clustPrior = iidPrior,
+                               areaPrior = bym2prior,
+                               nigeriaGraph = nigeriaGraph,
+                               randomEffect = "bym2",
+                               admin2 = TRUE, 
+                               covarModel = FALSE,
+                               nameVec = nameVec,
+                               popList = nigeriaPop,
+                               listCov = listCov,
+                               nSamp = 1000,
+                               holdOut = FALSE)$fit
+  
+  # Covariates + BYM(admin2) + cluster effect
+  cv.admin2.bym.cov = runUnitLevel(myData = tmpData,
+                                   clustPrior = iidPrior,
+                                   areaPrior = bym2prior,
+                                   nigeriaGraph = nigeriaGraph,
+                                   randomEffect = "bym2",
+                                   admin2 = TRUE, 
+                                   covarModel = TRUE,
+                                   nameVec = nameVec,
+                                   popList = nigeriaPop,
+                                   listCov = listCov,
+                                   nSamp = 1000,
+                                   holdOut = FALSE)$fit
+  
+  
+  # SPDE
+  prior.range = c(3, 0.5)
+  prior.sigma = c(0.5, 0.5)
+  cv.spde = getContLGM(myData = tmpData,
+                       mesh = mesh,
+                       prior.range = prior.range,
+                       prior.sigma = prior.sigma,
+                       clustPrior = iidPrior)
+  
+  # SPDE + cov
+  # Fit SPDE
+  cv.spde.cov = getContLGM(myData = tmpData,
+                           mesh = mesh,
+                           useCov = TRUE,
+                           prior.range = prior.range,
+                           prior.sigma = prior.sigma,
+                           clustPrior = iidPrior)
+  
+  # Extract results
   idxNum = which(idx == TRUE)
   uniqueCl = unique(myData$clusterIdx[idxNum])
   for(i in 1:length(cvResults$admin1$cIdx)){
     if(cvResults$admin1$cIdx[i]%in%uniqueCl){
       idxRep = newData$idx[i]
-      cvResults$admin1$mean[i] = inla.admin1.tmp$summary.linear.predictor$mean[idxRep]
-      cvResults$admin2$mean[i] = inla.admin2.tmp$summary.linear.predictor$mean[idxRep]
-      cvResults$spde$mean[i]   = inla.spde.tmp$summary.linear.predictor$mean[idxRep]
-      cvResults$spdeCov$mean[i]   = inla.spdeCov.tmp$summary.linear.predictor$mean[idxRep]
-      cvResults$noSpace$mean[i]   = inlaRes$summary.linear.predictor$mean[idxRep]
+      cvSummary$NoSpace$mean[i] = cv.NoSpace$summary.linear.predictor$mean[idxRep]
+      cvSummary$NoSpace.cov$mean[i] = cv.NoSpace.cov$summary.linear.predictor$mean[idxRep]
+      cvSummary$A1.iid$mean[i] = cv.admin1.iid$summary.linear.predictor$mean[idxRep]
+      cvSummary$A1.iid.cov$mean[i] = cv.admin1.iid.cov$summary.linear.predictor$mean[idxRep]
+      cvSummary$A1.bym$mean[i] = cv.admin1.bym$summary.linear.predictor$mean[idxRep]
+      cvSummary$A1.bym.cov$mean[i] = cv.admin1.bym.cov$summary.linear.predictor$mean[idxRep]
+      cvSummary$A2.bym$mean[i] = cv.admin2.bym$summary.linear.predictor$mean[idxRep]
+      cvSummary$A2.bym.cov$mean[i] = cv.admin2.bym.cov$summary.linear.predictor$mean[idxRep]
+      cvSummary$GRF$mean[i] = cv.spde$summary.linear.predictor$mean[idxRep]
+      cvSummary$GRF.cov$mean[i] = cv.spde.cov$summary.linear.predictor$mean[idxRep]
       
-      cvResults$admin1$sd[i] = inla.admin1.tmp$summary.linear.predictor$sd[idxRep]
-      cvResults$admin2$sd[i] = inla.admin2.tmp$summary.linear.predictor$sd[idxRep]
-      cvResults$spde$sd[i]   = inla.spde.tmp$summary.linear.predictor$sd[idxRep]
-      cvResults$spdeCov$sd[i]   = inla.spdeCov.tmp$summary.linear.predictor$sd[idxRep]
-      cvResults$noSpace$sd[i]   = inlaRes$summary.linear.predictor$sd[idxRep]
+      cvSummary$NoSpace$sd[i] = cv.NoSpace$summary.linear.predictor$sd[idxRep]
+      cvSummary$NoSpace.cov$sd[i] = cv.NoSpace.cov$summary.linear.predictor$sd[idxRep]
+      cvSummary$A1.iid$sd[i] = cv.admin1.iid$summary.linear.predictor$sd[idxRep]
+      cvSummary$A1.iid.cov$sd[i] = cv.admin1.iid.cov$summary.linear.predictor$sd[idxRep]
+      cvSummary$A1.bym$sd[i] = cv.admin1.bym$summary.linear.predictor$sd[idxRep]
+      cvSummary$A1.bym.cov$sd[i] = cv.admin1.bym.cov$summary.linear.predictor$sd[idxRep]
+      cvSummary$A2.bym$sd[i] = cv.admin2.bym$summary.linear.predictor$sd[idxRep]
+      cvSummary$A2.bym.cov$sd[i] = cv.admin2.bym.cov$summary.linear.predictor$sd[idxRep]
+      cvSummary$GRF$sd[i] = cv.spde$summary.linear.predictor$sd[idxRep]
+      cvSummary$GRF.cov$sd[i] = cv.spde.cov$summary.linear.predictor$sd[idxRep]
       
-      
-      cvResults$admin1.marg[[i]] = inla.admin1.tmp$marginals.linear.predictor[[idxRep]]
-      cvResults$admin2.marg[[i]] = inla.admin2.tmp$marginals.linear.predictor[[idxRep]]
-      cvResults$spde.marg[[i]]   = inla.spde.tmp$marginals.linear.predictor[[idxRep]]
-      cvResults$spdeCov.marg[[i]]   = inla.spdeCov.tmp$marginals.linear.predictor[[idxRep]]
-      cvResults$noSpace.marg[[i]]   = inlaRes$marginals.linear.predictor[[idxRep]]
+      cvMarginal$NoSpace[[i]] = cv.NoSpace$marginals.linear.predictor[[idxRep]]
+      cvMarginal$NoSpace.cov[[i]] = cv.NoSpace.cov$marginals.linear.predictor[[idxRep]]
+      cvMarginal$A1.iid[[i]] = cv.admin1.iid$marginals.linear.predictor[[idxRep]]
+      cvMarginal$A1.iid.cov[[i]] = cv.admin1.iid.cov$marginals.linear.predictor[[idxRep]]
+      cvMarginal$A1.bym[[i]] = cv.admin1.bym$marginals.linear.predictor[[idxRep]]
+      cvMarginal$A1.bym.cov[[i]] = cv.admin1.bym.cov$marginals.linear.predictor[[idxRep]]
+      cvMarginal$A2.bym[[i]] = cv.admin2.bym$marginals.linear.predictor[[idxRep]]
+      cvMarginal$A2.bym.cov[[i]] = cv.admin2.bym.cov$marginals.linear.predictor[[idxRep]]
+      cvMarginal$GRF[[i]] = cv.spde$marginals.linear.predictor[[idxRep]]
+      cvMarginal$GRF.cov[[i]] = cv.spde.cov$marginals.linear.predictor[[idxRep]]
     }
   }
 }

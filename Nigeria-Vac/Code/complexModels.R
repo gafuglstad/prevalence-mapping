@@ -193,7 +193,8 @@ runUnitLevel = function(myData,
                         nSamp = 1000,
                         admin2 = FALSE, 
                         covarModel = FALSE,
-                        listCov){
+                        listCov,
+                        holdOut = TRUE){
   # Fit unit-level model
   inla.fit = getUnitLevelModel(myData = myData,
                                nigeriaGraph = nigeriaGraph,
@@ -202,6 +203,10 @@ runUnitLevel = function(myData,
                                randomEffect = randomEffect,
                                admin2 = admin2, 
                                covarModel = covarModel)
+  
+  if(!holdOut){
+    return(list(fit = inla.fit))
+  }
   
   # Aggregate estimates
   nameAdm1 = c()
