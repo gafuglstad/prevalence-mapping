@@ -1202,77 +1202,33 @@ for(cvFold in 1:10){
     newData$n[i] = sum(myData$clusterIdx == newData$cIdx[i])
     newData$idx[i] = which.max(myData$clusterIdx == newData$cIdx[i])
   }
-  admin1.cScore = getScoresMarg(newData$y, newData$n, cvResults$admin1.marg)
-  admin2.cScore = getScoresMarg(newData$y, newData$n, cvResults$admin2.marg)
-  spde.cScore   = getScoresMarg(newData$y, newData$n, cvResults$spde.marg)
-  spdeCov.cScore   = getScoresMarg(newData$y, newData$n, cvResults$spdeCov.marg)
-  noSpace.cScore   = getScoresMarg(newData$y, newData$n, cvResults$noSpace.marg)
   
-  allClusterScores = rbind(colMeans(noSpace.cScore),
-                           colMeans(admin1.cScore),
-                           colMeans(admin2.cScore),
-                           colMeans(spde.cScore),
-                           colMeans(spdeCov.cScore))
-  row.names(allClusterScores) = c("noSpace", "BYM (admin1)", "BYM (admin2)", "GRF", "GRF+Cov")
+  cScore.NoSpace = getScoresMarg(newData$y, newData$n, cvMarginal$NoSpace)
+  cScore.NoSpace.cov = getScoresMarg(newData$y, newData$n, cvMarginal$NoSpace.cov)
+  cScore.A1.iid = getScoresMarg(newData$y, newData$n, cvMarginal$A1.iid)
+  cScore.A1.iid.cov = getScoresMarg(newData$y, newData$n, cvMarginal$A1.iid.cov)
+  cScore.A1.bym = getScoresMarg(newData$y, newData$n, cvMarginal$A1.bym)
+  cScore.A1.bym.cov = getScoresMarg(newData$y, newData$n, cvMarginal$A1.bym.cov)
+  cScore.A2.bym = getScoresMarg(newData$y, newData$n, cvMarginal$A2.bym)
+  cScore.A2.bym.cov = getScoresMarg(newData$y, newData$n, cvMarginal$A2.bym.cov)
+  cScore.GRF = getScoresMarg(newData$y, newData$n, cvMarginal$GRF)
+  cScore.GRF.cov = getScoresMarg(newData$y, newData$n, cvMarginal$GRF.cov)
+  
+  allClusterScores = rbind(colMeans(cScore.NoSpace),
+                           colMeans(cScore.NoSpace.cov),
+                           colMeans(cScore.A1.iid),
+                           colMeans(cScore.A1.iid.cov),
+                           colMeans(cScore.A1.bym),
+                           colMeans(cScore.A1.bym.cov),
+                           colMeans(cScore.A2.bym),
+                           colMeans(cScore.A2.bym.cov),
+                           colMeans(cScore.GRF),
+                           colMeans(cScore.GRF.cov))
+  row.names(allClusterScores) = c("NoSpace-UR", "NoSpace-Cov",
+                                  "A1-IID-noCov", "A1-IID-Cov", "A1-BYM-noCov", "A1-BYM-Cov",
+                                  "A2-BYM-noCov", "A2-BYM-Cov",
+                                  "GRF-noCov", "GRF-Cov")
   print(round(allClusterScores, digits = 3))
-  
-## Some score plots
-  # Bad places more bad with IGN scores
-  plot(crps.logit.admin1$ign, crps.logit.admin2$ign)
-  abline(a = 0, b = 1, col = "red")
-  
-  # Not so with CRPSs
-  plot(crps.logit.admin1$crps, crps.logit.admin2$crps)
-  abline(a = 0, b = 1, col = "red")
-  
-  # Worst location
-# plot(xx, dnorm(xx, mean = direct.est$logitP[37], sd = direct.est$se[37]), type = "l")
-#  lines(xx, dnorm(xx, mean = mu1, sqrt(apply(logit(admin1.bym.holdOut$samples$p.overD), 1, var)[37])), col = "blue")
-#  lines(xx, dnorm(xx, mean = mu2, sqrt(apply(logit(admin2.bym.holdOut$samples$p.overD), 1, var)[37])), col = "red")
-#  legend('topright', legend = c("direct", "admin1", "admin2"), col = c("black", "blue", "red"), lwd = 2)
-#  abline(v = direct.est$logitP[37], lwd = 2)
-
-## Make figures of estimates and uncertainty
-  # Compare predictive distributions using full data
-  postscript('Figures/nigeria_predDist_full.eps')
-  idx = order(direct.est$p_Med)
-  plot(1:37, direct.est$p_Med[idx], ylim = c(0,1), cex = 0.5, lwd = 2, xlim = c(0.5, 10.5),
-       xlab = "State", ylab = "Vaccination coverage")
-  for(i in 1:37)
-    lines(c(i,i), c(direct.est$p_Low[idx[i]], direct.est$p_Upp[idx[i]]), col = "green", lwd = 1.5)
-  points(1:37, direct.est$p_Med[idx], ylim = c(0,1), cex = 0.5, lwd = 2)
-  for(i in 1:37)
-    lines(0.2 + c(i,i), c(admin2.bym$overD$p_Low[idx[i]], admin2.bym$overD$p_Upp[idx[i]]), col = "blue", lwd = 1.5)
-  points(0.2+(1:37), admin2.bym$overD$p_Med[idx], cex = 0.5, lwd = 2, col = "red")
-  for(i in 1:37)
-    lines(0.4 + c(i,i), c(admin1.bym$overD$p_Low[idx[i]], admin1.bym$overD$p_Upp[idx[i]]), col = "pink", lwd = 1.5)
-  points(0.4+(1:37), admin1.bym$overD$p_Med[idx], cex = 0.5, lwd = 2, col = "grey")
-  legend('topleft', legend = c("Direct", "Admin1", "Admin2"), col = c("black", "grey", "red"), pch = 1)
-  for(i in 1:37)
-    lines(0.6 + c(i,i), c(smooth.direct$p_Low[idx[i]], smooth.direct$p_Upp[idx[i]]), col = "yellow", lwd = 1.5)
-  points(0.6+(1:37), smooth.direct$p_Med[idx], cex = 0.5, lwd = 2, col = "purple")
-  legend('topleft', legend = c("Direct", "Admin1", "Admin2", "smooth"), col = c("black", "grey", "red", "purple"), pch = 1)
-  dev.off()
-  
-  # Compare hold-out predictive distributions
-  postscript('Figures/nigeria_predDist_holdout.eps')
-  idx = order(direct.est$p_Med)
-  plot(1:37, direct.est$p_Med[idx], ylim = c(0,1), cex = 0.5, lwd = 2, xlim = c(0.5, 10.5),
-       xlab = "State", ylab = "Vaccination coverage")
-  for(i in 1:37)
-    lines(c(i,i), c(direct.est$p_Low[idx[i]], direct.est$p_Upp[idx[i]]), col = "green", lwd = 1.5)
-  points(1:37, direct.est$p_Med[idx], ylim = c(0,1), cex = 0.5, lwd = 2)
-  for(i in 1:37)
-    lines(0.25 + c(i,i), c(admin2.bym.holdOut$overD$p_Low[idx[i]], admin2.bym.holdOut$overD$p_Upp[idx[i]]), col = "blue", lwd = 1.5)
-  points(0.25+(1:37), admin2.bym.holdOut$overD$p_Med[idx], cex = 0.5, lwd = 2, col = "red")
-  for(i in 1:37)
-    lines(0.4 + c(i,i), c(admin1.bym.holdOut$overD$p_Low[idx[i]], admin1.bym.holdOut$overD$p_Upp[idx[i]]), col = "pink", lwd = 1.5)
-  points(0.4+(1:37), admin1.bym.holdOut$overD$p_Med[idx], cex = 0.5, lwd = 2, col = "grey")
-  for(i in 1:37)
-    lines(0.6 + c(i,i), c(smooth.direct.holdOut$p_Low[idx[i]], smooth.direct.holdOut$p_Upp[idx[i]]), col = "yellow", lwd = 1.5)
-  points(0.6+(1:37), smooth.direct.holdOut$p_Med[idx], cex = 0.5, lwd = 2, col = "purple")
-  legend('topleft', legend = c("Direct", "Admin1", "Admin2", "smooth"), col = c("black", "grey", "red", "purple"), pch = 1)
-  dev.off()
   
   ## Make admin1 plots
     # Color limits
