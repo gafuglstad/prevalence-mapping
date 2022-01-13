@@ -277,21 +277,27 @@ save.image("Partial_DirectSmooth.RData")
 ################################################################################
 ## Synthetic estimates #########################################################
 ################################################################################
-  ## Synthetic 1: Logit simple
-    print("Computing sythetic estimate (logit1)...")
-    res.synthLogit1 = runSynthLogit(myData, nigeriaPop, nameVec, nSamp = 1000, listCov, sepUR = FALSE)
-  
-  ## Synthetic 2: Logit complex
-    print("Computing sythetic estimate (logit2)...")
-    res.synthLogit2 = runSynthLogit(myData, nigeriaPop, nameVec, nSamp = 1000, listCov, sepUR = TRUE)
+  if(is.null(myData$householdIdx)){
+    load("../Data/Nigeria_AGG_DHS/synthEstimates.RData")
+  } else{
+    ## Synthetic 1: Logit simple
+      print("Computing sythetic estimate (logit1)...")
+      res.synthLogit1 = runSynthLogit(myData, nigeriaPop, nameVec, nSamp = 1000, listCov, sepUR = FALSE)
     
-  ## Synthetic 3: Linear simple
-    print("Computing sythetic estimate (linear1)...")
-    res.synthLinear1 = runSynthLinear(myData, nigeriaPop, nameVec, nSamp = 1000, listCov, sepUR = FALSE)
-    
-  ## Synthetic 4: Linear complex
-    print("Computing sythetic estimate (linear2)...")
-    res.synthLinear2 = runSynthLinear(myData, nigeriaPop, nameVec, nSamp = 1000, listCov, sepUR = TRUE)
+    ## Synthetic 2: Logit complex
+      print("Computing sythetic estimate (logit2)...")
+      res.synthLogit2 = runSynthLogit(myData, nigeriaPop, nameVec, nSamp = 1000, listCov, sepUR = TRUE)
+      
+    ## Synthetic 3: Linear simple
+      print("Computing sythetic estimate (linear1)...")
+      res.synthLinear1 = runSynthLinear(myData, nigeriaPop, nameVec, nSamp = 1000, listCov, sepUR = FALSE)
+      
+    ## Synthetic 4: Linear complex
+      print("Computing sythetic estimate (linear2)...")
+      res.synthLinear2 = runSynthLinear(myData, nigeriaPop, nameVec, nSamp = 1000, listCov, sepUR = TRUE)
+      
+      save(file = "../Data/Nigeria_AGG_DHS/synthEstimates.RData", res.synthLogit1, res.synthLogit2, res.synthLinear1, res.synthLinear2)
+  }
 save.image("Partial_Synth.RData")    
 
 #######################
@@ -1185,12 +1191,12 @@ for(cvFold in 1:10){
     for(i in 1:nrow(scVec)){
       etaSam = inla.rmarginal(50000, inMarg[[i]])
       pSam = 1/(1+exp(-etaSam))
+      likeVal = mean(dbinom(y[i], size = n[i], prob = pSam))
       yNew = rbinom(50000,size = n[i], prob = pSam)
       pSam = yNew/n[i]
       scVec[i,1] = crps_sample(y[i]/n[i], pSam)
       scVec[i,2] = (y[i]/n[i]-mean(pSam))^2
-      tmpProb = sum(y[i] == yNew)/length(yNew)
-      scVec[i,3] = -log(tmpProb)
+      scVec[i,3] = -log(likeVal)
     }
     colnames(scVec) = c("CRPS", "MSE (pred = mean)", "Log-score")
     
@@ -1233,31 +1239,79 @@ for(cvFold in 1:10){
   ## Make admin1 plots
     # Color limits
     colLim = c(min(direct.est$p_Med,
-                   smooth.direct$p_Med,
-                   synthEst$admin1$p_Med,
-                   admin1.bym$overD$p_Med,
-                   admin2.bym$overD$p_Med,
+                   fixed.model$overD$p_Med,
+                   res.noSpace.cov$est$admin1$p_Med,
+                   res.admin1.iid.noCov$est$admin1$p_Med,
+                   res.admin1.iid.cov$est$admin1$p_Med,
+                   res.admin1.bym.noCov$est$admin1$p_Med,
+                   res.admin1.bym.cov$est$admin1$p_Med,
+                   res.admin2.bym.noCov$est$admin1$p_Med,
+                   res.admin2.bym.cov$est$admin1$p_Med,
+                   res.synthLogit1$res$admin1$p_Med,
+                   res.synthLogit2$res$admin1$p_Med,
+                   res.synthLinear1$res$admin1$p_Med,
+                   res.synthLinear2$res$admin1$p_Med,
+                   res.SmoothDirect.iid$res$p_Med,
+                   res.SmoothDirect.iid.cov$res$p_Med,
+                   res.SmoothDirect.bym$res$p_Med,
+                   res.SmoothDirect.bym.cov$res$p_Med,
                    allLevels.spde$overD$p_Med,
                    allLevels.spdeCov$overD$p_Med),
                max(direct.est$p_Med,
-                   smooth.direct$p_Med,
-                   synthEst$admin1$p_Med,
-                   admin1.bym$overD$p_Med,
-                   admin2.bym$overD$p_Med,
+                   fixed.model$overD$p_Med,
+                   res.noSpace.cov$est$admin1$p_Med,
+                   res.admin1.iid.noCov$est$admin1$p_Med,
+                   res.admin1.iid.cov$est$admin1$p_Med,
+                   res.admin1.bym.noCov$est$admin1$p_Med,
+                   res.admin1.bym.cov$est$admin1$p_Med,
+                   res.admin2.bym.noCov$est$admin1$p_Med,
+                   res.admin2.bym.cov$est$admin1$p_Med,
+                   res.synthLogit1$res$admin1$p_Med,
+                   res.synthLogit2$res$admin1$p_Med,
+                   res.synthLinear1$res$admin1$p_Med,
+                   res.synthLinear2$res$admin1$p_Med,
+                   res.SmoothDirect.iid$res$p_Med,
+                   res.SmoothDirect.iid.cov$res$p_Med,
+                   res.SmoothDirect.bym$res$p_Med,
+                   res.SmoothDirect.bym.cov$res$p_Med,
                    allLevels.spde$overD$p_Med,
                    allLevels.spdeCov$overD$p_Med))
     colLim2 = c(min(direct.est$p_Upp-direct.est$p_Low,
-                    smooth.direct$p_Upp-smooth.direct$p_Low,
-                    synthEst$admin1$p_Upp-synthEst$admin1$p_Low,
-                    admin1.bym$overD$p_Upp-admin1.bym$overD$p_Low,
-                    admin2.bym$overD$p_Upp-admin2.bym$overD$p_Low,
+                    fixed.model$overD$p_Upp-fixed.model$overD$p_Low,
+                    res.noSpace.cov$est$admin1$p_Upp-res.noSpace.cov$est$admin1$p_Low,
+                    res.admin1.iid.noCov$est$admin1$p_Upp-res.admin1.iid.noCov$est$admin1$p_Low,
+                    res.admin1.iid.cov$est$admin1$p_Upp-res.admin1.iid.cov$est$admin1$p_Low,
+                    res.admin1.bym.noCov$est$admin1$p_Upp-res.admin1.bym.noCov$est$admin1$p_Low,
+                    res.admin1.bym.cov$est$admin1$p_Upp-res.admin1.bym.cov$est$admin1$p_Low,
+                    res.admin2.bym.noCov$est$admin1$p_Upp-res.admin2.bym.noCov$est$admin1$p_Low,
+                    res.admin2.bym.cov$est$admin1$p_Upp-res.admin2.bym.cov$est$admin1$p_Low,
+                    res.synthLogit1$res$admin1$p_Upp-res.synthLogit1$res$admin1$p_Low,
+                    res.synthLogit2$res$admin1$p_Upp-res.synthLogit2$res$admin1$p_Low,
+                    res.synthLinear1$res$admin1$p_Upp-res.synthLinear1$res$admin1$p_Low,
+                    res.synthLinear2$res$admin1$p_Upp-res.synthLinear2$res$admin1$p_Low,
+                    res.SmoothDirect.iid$res$p_Upp-res.SmoothDirect.iid$res$p_Low,
+                    res.SmoothDirect.iid.cov$res$p_Upp-res.SmoothDirect.iid.cov$res$p_Low,
+                    res.SmoothDirect.bym$res$p_Upp-res.SmoothDirect.bym$res$p_Low,
+                    res.SmoothDirect.bym.cov$res$p_Upp-res.SmoothDirect.bym.cov$res$p_Low,
                     allLevels.spde$overD$p_Upp-allLevels.spde$overD$p_Low,
                     allLevels.spdeCov$overD$p_Upp-allLevels.spdeCov$overD$p_Low),
                 max(direct.est$p_Upp-direct.est$p_Low,
-                    smooth.direct$p_Upp-smooth.direct$p_Low,
-                    synthEst$admin1$p_Upp-synthEst$admin1$p_Low,
-                    admin1.bym$overD$p_Upp-admin1.bym$overD$p_Low,
-                    admin2.bym$overD$p_Upp-admin2.bym$overD$p_Low,
+                    fixed.model$overD$p_Upp-fixed.model$overD$p_Low,
+                    res.noSpace.cov$est$admin1$p_Upp-res.noSpace.cov$est$admin1$p_Low,
+                    res.admin1.iid.noCov$est$admin1$p_Upp-res.admin1.iid.noCov$est$admin1$p_Low,
+                    res.admin1.iid.cov$est$admin1$p_Upp-res.admin1.iid.cov$est$admin1$p_Low,
+                    res.admin1.bym.noCov$est$admin1$p_Upp-res.admin1.bym.noCov$est$admin1$p_Low,
+                    res.admin1.bym.cov$est$admin1$p_Upp-res.admin1.bym.cov$est$admin1$p_Low,
+                    res.admin2.bym.noCov$est$admin1$p_Upp-res.admin2.bym.noCov$est$admin1$p_Low,
+                    res.admin2.bym.cov$est$admin1$p_Upp-res.admin2.bym.cov$est$admin1$p_Low,
+                    res.synthLogit1$res$admin1$p_Upp-res.synthLogit1$res$admin1$p_Low,
+                    res.synthLogit2$res$admin1$p_Upp-res.synthLogit2$res$admin1$p_Low,
+                    res.synthLinear1$res$admin1$p_Upp-res.synthLinear1$res$admin1$p_Low,
+                    res.synthLinear2$res$admin1$p_Upp-res.synthLinear2$res$admin1$p_Low,
+                    res.SmoothDirect.iid$res$p_Upp-res.SmoothDirect.iid$res$p_Low,
+                    res.SmoothDirect.iid.cov$res$p_Upp-res.SmoothDirect.iid.cov$res$p_Low,
+                    res.SmoothDirect.bym$res$p_Upp-res.SmoothDirect.bym$res$p_Low,
+                    res.SmoothDirect.bym.cov$res$p_Upp-res.SmoothDirect.bym.cov$res$p_Low,
                     allLevels.spde$overD$p_Upp-allLevels.spde$overD$p_Low,
                     allLevels.spdeCov$overD$p_Upp-allLevels.spdeCov$overD$p_Low))
     
@@ -1272,46 +1326,89 @@ for(cvFold in 1:10){
                 colLim = colLim2,
                 leg = "CI width")
     
-    # Smoothed direct
-    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_smoothDirect.png', 
-                estVal = smooth.direct$p_Med, 
+    # Only urban/rural + cluster effect
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_NoSpace_noCov.png', 
+                estVal = fixed.model$overD$p_Med, 
                 graph = nigeriaMap_admin1,
                 colLim = colLim)
-    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_smoothDirect_unc.png', 
-                estVal = smooth.direct$p_Upp-smooth.direct$p_Low, 
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_NoSpace-noCov_unc.png', 
+                estVal = fixed.model$overD$p_Upp-fixed.model$overD$p_Low, 
                 graph = nigeriaMap_admin1,
                 colLim = colLim2,
                 leg = "CI width")
     
-    # Smoothed direct
-    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_synthetic.png', 
-                estVal = synthEst$admin1$p_Med, 
+    # Covariates + cluster
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_NoSpace_Cov.png', 
+                estVal = res.noSpace.cov$est$admin1$p_Med, 
                 graph = nigeriaMap_admin1,
                 colLim = colLim)
-    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_synthetic_unc.png', 
-                estVal = synthEst$admin1$p_Upp-synthEst$admin1$p_Low, 
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_NoSpace_Cov_unc.png', 
+                estVal = res.noSpace.cov$est$admin1$p_Upp - res.noSpace.cov$est$admin1$p_Low, 
                 graph = nigeriaMap_admin1,
                 colLim = colLim2,
                 leg = "CI width")
     
-    # BYM (admin1)
-    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_bymAdm1.png', 
-                estVal = admin1.bym$overD$p_Med, 
+    # Intercept + IID(admin1) + cluster
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A1_iid_NoCov.png', 
+                estVal = res.admin1.iid.noCov$est$admin1$p_Med, 
                 graph = nigeriaMap_admin1,
                 colLim = colLim)
-    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_bymAdm1_unc.png', 
-                estVal = admin1.bym$overD$p_Upp-admin1.bym$overD$p_Low, 
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A1_iid_NoCov_unc.png', 
+                estVal = res.admin1.iid.noCov$est$admin1$p_Upp-res.admin1.iid.noCov$est$admin1$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    # Covariates + IID(admin1) + cluster
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A1_iid_Cov.png', 
+                estVal = res.admin1.iid.cov$est$admin1$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A1_iid_Cov_unc.png', 
+                estVal = res.admin1.iid.cov$est$admin1$p_Upp-res.admin1.iid.cov$est$admin1$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    # Intercept + BYM(admin1) + cluster
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A1_bym_NoCov.png', 
+                estVal = res.admin1.bym.noCov$est$admin1$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A1_bym_NoCov_unc.png', 
+                estVal = res.admin1.bym.noCov$est$admin1$p_Upp-res.admin1.bym.noCov$est$admin1$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    # Covariates + BYM(admin1) + cluster
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A1_bym_Cov.png', 
+                estVal = res.admin1.bym.cov$est$admin1$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A1_bym_Cov_unc.png', 
+                estVal = res.admin1.bym.cov$est$admin1$p_Upp-res.admin1.bym.cov$est$admin1$p_Low, 
                 graph = nigeriaMap_admin1,
                 colLim = colLim2,
                 leg = "CI width")
     
     # BYM (admin2)
-    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_bymAdm2.png', 
-                estVal = admin2.bym$overD$p_Med, 
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A2_bym_NoCov.png', 
+                estVal = res.admin2.bym.noCov$est$admin1$p_Med, 
                 graph = nigeriaMap_admin1,
                 colLim = colLim)
-    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_bymAdm2_unc.png', 
-                estVal = admin2.bym$overD$p_Upp-admin2.bym$overD$p_Low, 
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A2_bym_NoCov_unc.png', 
+                estVal = res.admin2.bym.noCov$est$admin1$p_Upp-res.admin2.bym.noCov$est$admin1$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A2_bym_Cov.png', 
+                estVal = res.admin2.bym.cov$est$admin1$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_A2_bym_Cov_unc.png', 
+                estVal = res.admin2.bym.cov$est$admin1$p_Upp-res.admin2.bym.cov$est$admin1$p_Low, 
                 graph = nigeriaMap_admin1,
                 colLim = colLim2,
                 leg = "CI width")
@@ -1338,50 +1435,163 @@ for(cvFold in 1:10){
                 colLim = colLim2,
                 leg = "CI width")
     
+    # Synthetic
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_Synth_Logit1.png', 
+                estVal = res.synthLogit1$res$admin1$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_Synth_Logit1_unc.png', 
+                estVal = res.synthLogit1$res$admin1$p_Upp-res.synthLogit1$res$admin1$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_Synth_Logit2.png', 
+                estVal = res.synthLogit2$res$admin1$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_Synth_Logit2_unc.png', 
+                estVal = res.synthLogit2$res$admin1$p_Upp-res.synthLogit2$res$admin1$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_Synth_Linear1.png', 
+                estVal = res.synthLinear1$res$admin1$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_Synth_Linear1_unc.png', 
+                estVal = res.synthLinear1$res$admin1$p_Upp-res.synthLinear1$res$admin1$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_Synth_Linear2.png', 
+                estVal = res.synthLinear2$res$admin1$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_Synth_Linear2_unc.png', 
+                estVal = res.synthLinear2$res$admin1$p_Upp-res.synthLinear2$res$admin1$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    # FH-models
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_FH_IID.png', 
+                estVal = res.SmoothDirect.iid$res$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_FH_IID_unc.png', 
+                estVal = res.SmoothDirect.iid$res$p_Upp-res.SmoothDirect.iid$res$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_FH_IID_Cov.png', 
+                estVal = res.SmoothDirect.iid.cov$res$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_FH_IID_Cov_unc.png', 
+                estVal = res.SmoothDirect.iid.cov$res$p_Upp-res.SmoothDirect.iid.cov$res$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_FH_BYM.png', 
+                estVal = res.SmoothDirect.bym$res$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_FH_BYM_unc.png', 
+                estVal = res.SmoothDirect.bym$res$p_Upp-res.SmoothDirect.bym$res$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
+    
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_FH_BYM_Cov.png', 
+                estVal = res.SmoothDirect.bym.cov$res$p_Med, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim)
+    plotAreaCol(fName = 'Figures/nig_admin1_MCV1_FH_BYM_Cov_unc.png', 
+                estVal = res.SmoothDirect.bym.cov$res$p_Upp-res.SmoothDirect.bym.cov$res$p_Low, 
+                graph = nigeriaMap_admin1,
+                colLim = colLim2,
+                leg = "CI width")
     
   ## Admin2   
     # Color limits
-    colLim3 = c(min(synthEst$admin2$p_Med,
-                    admin2.bym$admin2.overD$p_Med,
-                    allLevels.spde$admin2.overD$p_Med,
-                    allLevels.spdeCov$admin2.overD$p_Med),
-                max(synthEst$admin2$p_Med,
-                    admin2.bym$admin2.overD$p_Med,
-                    allLevels.spde$admin2.overD$p_Med,
-                    allLevels.spdeCov$admin2.overD$p_Med))
-    colLim4 = c(min(synthEst$admin2$p_Upp-synthEst$admin2$p_Low,
-                    admin2.bym$admin2.overD$p_Upp-admin2.bym$admin2.overD$p_Low,
+    colLim3 = c(min(res.noSpace.cov$est$admin2$p_Med,
+                   res.admin2.bym.noCov$est$admin2$p_Med,
+                   res.admin2.bym.cov$est$admin2$p_Med,
+                   res.synthLogit1$res$admin2$p_Med,
+                   res.synthLogit2$res$admin2$p_Med,
+                   res.synthLinear1$res$admin2$p_Med,
+                   res.synthLinear2$res$admin2$p_Med,
+                   allLevels.spde$admin2.overD$p_Med,
+                   allLevels.spdeCov$admin2.overD$p_Med),
+               max(res.noSpace.cov$est$admin2$p_Med,
+                   res.admin2.bym.noCov$est$admin2$p_Med,
+                   res.admin2.bym.cov$est$admin2$p_Med,
+                   res.synthLogit1$res$admin2$p_Med,
+                   res.synthLogit2$res$admin2$p_Med,
+                   res.synthLinear1$res$admin2$p_Med,
+                   res.synthLinear2$res$admin2$p_Med,
+                   allLevels.spde$admin2.overD$p_Med,
+                   allLevels.spdeCov$admin2.overD$p_Med))
+    colLim3[2] = min(colLim3[2], 1)
+    colLim4 = c(min(res.noSpace.cov$est$admin2$p_Upp-res.noSpace.cov$est$admin2$p_Low,
+                    res.admin2.bym.noCov$est$admin2$p_Upp-res.admin2.bym.noCov$est$admin2$p_Low,
+                    res.admin2.bym.cov$est$admin2$p_Upp-res.admin2.bym.cov$est$admin2$p_Low,
+                    res.synthLogit1$res$admin2$p_Upp-res.synthLogit1$res$admin2$p_Low,
+                    res.synthLogit2$res$admin2$p_Upp-res.synthLogit2$res$admin2$p_Low,
+                    res.synthLinear1$res$admin2$p_Upp-res.synthLinear1$res$admin2$p_Low,
+                    res.synthLinear2$res$admin2$p_Upp-res.synthLinear2$res$admin2$p_Low,
                     allLevels.spde$admin2.overD$p_Upp-allLevels.spde$admin2.overD$p_Low,
                     allLevels.spdeCov$admin2.overD$p_Upp-allLevels.spdeCov$admin2.overD$p_Low),
-                max(synthEst$admin2$p_Upp-synthEst$admin2$p_Low,
-                    admin2.bym$admin2.overD$p_Upp-admin2.bym$admin2.overD$p_Low,
+                max(res.noSpace.cov$est$admin2$p_Upp-res.noSpace.cov$est$admin2$p_Low,
+                    res.admin2.bym.noCov$est$admin2$p_Upp-res.admin2.bym.noCov$est$admin2$p_Low,
+                    res.admin2.bym.cov$est$admin2$p_Upp-res.admin2.bym.cov$est$admin2$p_Low,
+                    res.synthLogit1$res$admin2$p_Upp-res.synthLogit1$res$admin2$p_Low,
+                    res.synthLogit2$res$admin2$p_Upp-res.synthLogit2$res$admin2$p_Low,
+                    res.synthLinear1$res$admin2$p_Upp-res.synthLinear1$res$admin2$p_Low,
+                    res.synthLinear2$res$admin2$p_Upp-res.synthLinear2$res$admin2$p_Low,
                     allLevels.spde$admin2.overD$p_Upp-allLevels.spde$admin2.overD$p_Low,
                     allLevels.spdeCov$admin2.overD$p_Upp-allLevels.spdeCov$admin2.overD$p_Low))
     
-    # Synthetic
-    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_synthetic.png', 
-                estVal = synthEst$admin2$p_Med, 
+    
+    # covariates + cluster
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_NoSpace_Cov.png', 
+                estVal = res.noSpace.cov$est$admin2$p_Med, 
                 graph = nigeriaMap,
                 colLim = colLim3)
-    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_synthetic_unc.png', 
-                estVal = synthEst$admin2$p_Upp-synthEst$admin2$p_Low, 
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_NoSpace_Cov_unc.png', 
+                estVal = res.noSpace.cov$est$admin2$p_Upp-res.noSpace.cov$est$admin2$p_Low, 
                 graph = nigeriaMap,
                 colLim = colLim4,
                 leg = "CI width")
     
     # BYM (admin2)
-    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_bymAdm2.png', 
-                estVal = admin2.bym$admin2.overD$p_Med, 
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_A2_BYM_NoCov.png', 
+                estVal = res.admin2.bym.noCov$est$admin2$p_Med, 
                 graph = nigeriaMap,
                 colLim = colLim3)
-    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_bymAdm2_unc.png', 
-                estVal = admin2.bym$admin2.overD$p_Upp-admin2.bym$admin2.overD$p_Low, 
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_A2_BYM_NoCov_unc.png', 
+                estVal = res.admin2.bym.noCov$est$admin2$p_Upp-res.admin2.bym.noCov$est$admin2$p_Low, 
                 graph = nigeriaMap,
                 colLim = colLim4,
                 leg = "CI width")
     
-    # SPDE
-    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_spde.png', 
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_A2_BYM_Cov.png', 
+                estVal = res.admin2.bym.cov$est$admin2$p_Med, 
+                graph = nigeriaMap,
+                colLim = colLim3)
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_A2_BYM_Cov_unc.png', 
+                estVal = res.admin2.bym.cov$est$admin2$p_Upp-res.admin2.bym.cov$est$admin2$p_Low, 
+                graph = nigeriaMap,
+                colLim = colLim4,
+                leg = "CI width")
+    
+    # SPDEres.synthLogit1$res$admin2$p_Med,
+   plotAreaCol(fName = 'Figures/nig_admin2_MCV1_spde.png', 
                 estVal = allLevels.spde$admin2.overD$p_Med, 
                 graph = nigeriaMap,
                 colLim = colLim3)
@@ -1401,8 +1611,47 @@ for(cvFold in 1:10){
                 colLim = colLim4,
                 leg = "CI width")
     
-#  save.image(paste('EverythingDone_', sampleFrame, '.RData', sep = ""))
-  
+    # Synthetic
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_Synth_Logit1.png', 
+                estVal = res.synthLogit1$res$admin2$p_Med, 
+                graph = nigeriaMap,
+                colLim = colLim3)
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_Synth_Logit1_unc.png', 
+                estVal = res.synthLogit1$res$admin2$p_Upp-res.synthLogit1$res$admin2$p_Low, 
+                graph = nigeriaMap,
+                colLim = colLim4,
+                leg = "CI width")
+    
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_Synth_Logit2.png', 
+                estVal = res.synthLogit2$res$admin2$p_Med, 
+                graph = nigeriaMap,
+                colLim = colLim3)
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_Synth_Logit2_unc.png', 
+                estVal = res.synthLogit2$res$admin2$p_Upp-res.synthLogit2$res$admin2$p_Low, 
+                graph = nigeriaMap,
+                colLim = colLim4,
+                leg = "CI width")
+    
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_Synth_Linear1.png', 
+                estVal = res.synthLinear1$res$admin2$p_Med, 
+                graph = nigeriaMap,
+                colLim = colLim3)
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_Synth_Linear1_unc.png', 
+                estVal = res.synthLinear1$res$admin2$p_Upp-res.synthLinear1$res$admin2$p_Low, 
+                graph = nigeriaMap,
+                colLim = colLim4,
+                leg = "CI width")
+    
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_Synth_Linear2.png', 
+                estVal = res.synthLinear2$res$admin2$p_Med, 
+                graph = nigeriaMap,
+                colLim = colLim3)
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_Synth_Linear2_unc.png', 
+                estVal = res.synthLinear2$res$admin2$p_Upp-res.synthLinear2$res$admin2$p_Low, 
+                graph = nigeriaMap,
+                colLim = colLim4,
+                leg = "CI width")
+    
 ## Plot of covariates
   # Poverty
   png('Figures/Nigeria_poverty.png', width = 1200, height = 1200)
@@ -1460,3 +1709,7 @@ for(cvFold in 1:10){
        legend.mar = 7)
   plot(nigeriaMap, add = TRUE, lwd = 3)
   dev.off()
+
+# Save everything
+save.image(paste('EverythingDone.RData', sep = ""))
+  
