@@ -13,7 +13,7 @@ library(readxl)
 
 
 # Extract covariates from an appropriately organized raster
-getCovariate = getPop = function(fName, obsLoc){
+getCovariate = function(fName, obsLoc){
   # Covariate raster
   covRaster = raster(fName)
   
@@ -72,19 +72,385 @@ getNigeriaDirect = function(myData, byUrban = FALSE){
   return(direct.est)
 }
 
+# Synthetic unit-level estimation
+getNigeriaSyntheticLogit = function(myData, popList, nameAdm1, nSamp = 1000, onlyAdm2 = 1:774, onlyAdm1 = 1:37, listCov, sepUR = FALSE){
+  ## Step 1: Design-based estimates
+    # Introduce dummy variable
+    myData$urbanDummy = (myData$urban == "U")+0
+    
+    # Get direct stratum-specific direct estimates
+    my.svydesign <- svydesign(id= ~clusterIdx + householdIdx,
+                              strata=~stratum, nest=T, 
+                              weights=~weight, data=myData)
+    
+    # Fit GLM
+    if(!sepUR){
+      syntGLM.res = svyglm(measles~urbanDummy + poverty+lAccess,
+                           design = my.svydesign,
+                           family = quasibinomial())
+    }else{
+      syntGLM.res = svyglm(measles~urbanDummy + poverty*urbanDummy+lAccess*urbanDummy,
+                           design = my.svydesign,
+                           family = quasibinomial())
+    }
+    
+    # Get fit
+    mu = syntGLM.res$coefficients
+    Sig = vcov(syntGLM.res)
+    
+    # Get samples
+    beta = mvrnorm(n = nSamp, mu = mu, Sigma = Sig)
+  
+  ## Step 2: Admin2 samples
+    # Iterate through admin2 areas
+    admin2 = matrix(NA, nrow = 774, ncol = nSamp)
+    admin2.urb = matrix(NA, nrow = 774, ncol = nSamp)
+    admin2.rur = matrix(NA, nrow = 774, ncol = nSamp)
+    for(i in 1:774){
+      if(!(i%in%onlyAdm2)){
+        next
+      }
+      # Urban indicies & cell numbers from raster
+      idxUrb = popList$idxUrb[[i]]
+      cellNum = popList$popAdm2.2018[[i]][[1]][,1]
+      
+      # Get x and y coordinates
+      pop2018 = raster("../Data/Nigeria_pop/nga_ppp_2018_UNadj.tif")
+      xyCor = xyFromCell(pop2018, cell = cellNum)
+      
+      # Get covariate values
+      Xdesign = matrix(NA, nrow = dim(xyCor)[1], ncol = 2)
+      for(j in 1:length(listCov)){
+        Xdesign[,j] = raster::extract(x = listCov[[j]]$raster,
+                                      y = xyCor)
+      }
+      if(!sepUR){
+        Xdesign = cbind(1, idxUrb+0, Xdesign)
+      }else{
+        Xdesign = cbind(1, idxUrb+0, Xdesign, 
+                        Xdesign[,1]*(idxUrb+0), Xdesign[,2]*(idxUrb+0))
+      }
+      
+      # Get populations
+      urbPop = sum(popList$popAdm2.2018[[i]][[2]][idxUrb], na.rm = TRUE)
+      rurPop = sum(popList$popAdm2.2018[[i]][[2]][!idxUrb], na.rm = TRUE)
+      uProp = urbPop/(urbPop+rurPop)
+      
+      # Calculate samples
+      localSamples = Xdesign%*%t(beta)
+      localSamples = 1/(1+exp(-localSamples))
+      localSamples = localSamples*kronecker(matrix(1, nrow = 1, ncol = nSamp), matrix(popList$popAdm2.2018[[i]][[2]], ncol = 1))
+      
+      # Save in data object
+      admin2[i, ] = colSums(localSamples, na.rm = TRUE)/(urbPop+rurPop)
+      admin2.urb[i,] = colSums(localSamples[idxUrb,, drop = FALSE], na.rm = TRUE)/urbPop
+      admin2.rur[i,] = colSums(localSamples[!idxUrb,,drop = FALSE], na.rm = TRUE)/rurPop
+    }
+  
+  ## Step 3: Admin1 samples
+    # Iterate through admin2 areas
+    admin1 = matrix(0, nrow = 37, ncol = nSamp)
+    admin1.urb = matrix(0, nrow = 37, ncol = nSamp)
+    admin1.rur = matrix(0, nrow = 37, ncol = nSamp)
+    unNameAdm1 = unique(nameAdm1)
+    for(i in 1:37){
+      if(!(i%in%onlyAdm1)){
+        next
+      }
+      # Get indicies of admin2 areas
+      idxAdm2 = which(nameAdm1 == unNameAdm1[i])
+      totUrb = 0
+      totRur = 0
+      for(k in idxAdm2){
+        idxUrb = popList$idxUrb[[k]]
+        currUrb = sum(popList$popAdm2.2018[[k]][[2]][idxUrb], na.rm = TRUE)
+        currRur = sum(popList$popAdm2.2018[[k]][[2]][!idxUrb], na.rm = TRUE)
+        totUrb = totUrb + currUrb
+        totRur = totRur + currRur
+        
+        admin1[i,] = admin1[i,] + admin2[k,]*(currUrb+currRur)
+        if(currUrb > 0)
+          admin1.urb[i,] = admin1.urb[i,] + admin2.urb[k,]*currUrb
+        if(currRur > 0)
+          admin1.rur[i,] = admin1.rur[i,] + admin2.rur[k,]*currRur
+      }
+      admin1[i,] = admin1[i,]/(totUrb+totRur)
+      admin1.urb[i,] = admin1.urb[i,]/totUrb
+      admin1.rur[i,] = admin1.rur[i,]/totRur
+    }
+    
+  ## Calculate quantiles
+  pAdmin1     = matrix(0, nrow = 37, ncol = 3)
+  pAdmin1.rur = matrix(0, nrow = 37, ncol = 3)
+  pAdmin1.urb = matrix(0, nrow = 37, ncol = 3)
+  for(i in 1:37){
+    pAdmin1[i,] = quantile(admin1[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin1.rur[i,] = quantile(admin1.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin1.urb[i,] = quantile(admin1.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+  }
+  
+  pAdmin2     = matrix(0, nrow = 774, ncol = 3)
+  pAdmin2.rur = matrix(0, nrow = 774, ncol = 3)
+  pAdmin2.urb = matrix(0, nrow = 774, ncol = 3)
+  for(i in 1:774){
+    pAdmin2[i,] = quantile(admin2[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin2.rur[i,] = quantile(admin2.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin2.urb[i,] = quantile(admin2.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+  }
+  
+  ## Make result objects (admin1)
+  synt1.overD.ur = data.frame(admin1 = rep(levels(myData$admin1Fac), 2),
+                              urb = rep( c("R", "U"), each = 37),
+                              p_Low = c(pAdmin1.rur[, 1], pAdmin1.urb[, 1]),
+                              p_Med = c(pAdmin1.rur[, 2], pAdmin1.urb[, 2]),
+                              p_Upp = c(pAdmin1.rur[, 3], pAdmin1.urb[, 3]))
+  idx = order(synt1.overD.ur$admin1, synt1.overD.ur$urb)
+  synt1.overD.ur = synt1.overD.ur[idx,]
+  
+  synt1.overD = data.frame(admin1 = levels(myData$admin1Fac),
+                           p_Low = pAdmin1[, 1],
+                           p_Med = pAdmin1[, 2],
+                           p_Upp = pAdmin1[, 3])
+  idx = order(synt1.overD$admin1)
+  synt1.overD = synt1.overD[idx,]
+  
+  ## Make result objects (admin2)
+  synt2.overD.ur = data.frame(admin2 = rep(levels(myData$admin2Fac), 2),
+                              urb = rep( c("R", "U"), each = 774),
+                              p_Low = c(pAdmin2.rur[, 1], pAdmin2.urb[, 1]),
+                              p_Med = c(pAdmin2.rur[, 2], pAdmin2.urb[, 2]),
+                              p_Upp = c(pAdmin2.rur[, 3], pAdmin2.urb[, 3]))
+  idx = order(synt2.overD.ur$admin2, synt2.overD.ur$urb)
+  synt2.overD.ur = synt2.overD.ur[idx,]
+  
+  synt2.overD = data.frame(admin2 = levels(myData$admin2Fac),
+                           p_Low = pAdmin2[, 1],
+                           p_Med = pAdmin2[, 2],
+                           p_Upp = pAdmin2[, 3])
+  idx = order(synt2.overD$admin2)
+  synt2.overD = synt2.overD[idx,]
+  
+  ## Return results
+  return(list(admin1.ur = synt1.overD.ur,
+              admin1 = synt1.overD,
+              admin2.ur = synt2.overD.ur,
+              admin2 = synt2.overD,
+              samples = list(p = admin1,
+                             pRur = admin1.rur,
+                             pUrb = admin1.urb)))
+}
+
+
+# Synthetic unit-level estimation
+getNigeriaSyntheticLinear = function(myData, popList, nameAdm1, nSamp = 1000, onlyAdm2 = 1:774, onlyAdm1 = 1:37, listCov, sepUR = FALSE){
+  ## Step 1: Design-based estimates
+  # Introduce dummy variable
+  myData$urbanDummy = (myData$urban == "U")+0
+  
+  # Get direct stratum-specific direct estimates
+  my.svydesign <- svydesign(id= ~clusterIdx + householdIdx,
+                            strata=~stratum, nest=T, 
+                            weights=~weight, data=myData)
+  
+  # Fit GLM
+  if(!sepUR){
+    syntGLM.res = svyglm(measles~urbanDummy + poverty+lAccess,
+                         design = my.svydesign)
+  }else{
+    syntGLM.res = svyglm(measles~urbanDummy + poverty*urbanDummy+lAccess*urbanDummy,
+                         design = my.svydesign)
+  }
+  
+  # Get fit
+  mu = syntGLM.res$coefficients
+  Sig = vcov(syntGLM.res)
+  
+  # Get samples
+  beta = mvrnorm(n = nSamp, mu = mu, Sigma = Sig)
+  
+  ## Step 2: Admin2 samples
+  # Iterate through admin2 areas
+  admin2 = matrix(NA, nrow = 774, ncol = nSamp)
+  admin2.urb = matrix(NA, nrow = 774, ncol = nSamp)
+  admin2.rur = matrix(NA, nrow = 774, ncol = nSamp)
+  for(i in 1:774){
+    if(!(i%in%onlyAdm2)){
+      next
+    }
+    # Urban indicies & cell numbers from raster
+    idxUrb = popList$idxUrb[[i]]
+    cellNum = popList$popAdm2.2018[[i]][[1]][,1]
+    
+    # Get x and y coordinates
+    pop2018 = raster("../Data/Nigeria_pop/nga_ppp_2018_UNadj.tif")
+    xyCor = xyFromCell(pop2018, cell = cellNum)
+    
+    # Get covariate values
+    Xdesign = matrix(NA, nrow = dim(xyCor)[1], ncol = 2)
+    for(j in 1:length(listCov)){
+      Xdesign[,j] = raster::extract(x = listCov[[j]]$raster,
+                                    y = xyCor)
+    }
+    if(!sepUR){
+      Xdesign = cbind(1, idxUrb+0, Xdesign)
+    }else{
+      Xdesign = cbind(1, idxUrb+0, Xdesign, 
+                      Xdesign[,1]*(idxUrb+0), Xdesign[,2]*(idxUrb+0))
+    }
+    
+    # Get populations
+    urbPop = sum(popList$popAdm2.2018[[i]][[2]][idxUrb], na.rm = TRUE)
+    rurPop = sum(popList$popAdm2.2018[[i]][[2]][!idxUrb], na.rm = TRUE)
+    uProp = urbPop/(urbPop+rurPop)
+    
+    # Calculate samples
+    localSamples = Xdesign%*%t(beta)
+    localSamples = localSamples*kronecker(matrix(1, nrow = 1, ncol = nSamp), matrix(popList$popAdm2.2018[[i]][[2]], ncol = 1))
+    
+    # Save in data object
+    admin2[i, ] = colSums(localSamples, na.rm = TRUE)/(urbPop+rurPop)
+    admin2.urb[i,] = colSums(localSamples[idxUrb,, drop = FALSE], na.rm = TRUE)/urbPop
+    admin2.rur[i,] = colSums(localSamples[!idxUrb,,drop = FALSE], na.rm = TRUE)/rurPop
+  }
+  
+  ## Step 3: Admin1 samples
+  # Iterate through admin2 areas
+  admin1 = matrix(0, nrow = 37, ncol = nSamp)
+  admin1.urb = matrix(0, nrow = 37, ncol = nSamp)
+  admin1.rur = matrix(0, nrow = 37, ncol = nSamp)
+  unNameAdm1 = unique(nameAdm1)
+  for(i in 1:37){
+    if(!(i%in%onlyAdm1)){
+      next
+    }
+    # Get indicies of admin2 areas
+    idxAdm2 = which(nameAdm1 == unNameAdm1[i])
+    totUrb = 0
+    totRur = 0
+    for(k in idxAdm2){
+      idxUrb = popList$idxUrb[[k]]
+      currUrb = sum(popList$popAdm2.2018[[k]][[2]][idxUrb], na.rm = TRUE)
+      currRur = sum(popList$popAdm2.2018[[k]][[2]][!idxUrb], na.rm = TRUE)
+      totUrb = totUrb + currUrb
+      totRur = totRur + currRur
+      
+      admin1[i,] = admin1[i,] + admin2[k,]*(currUrb+currRur)
+      if(currUrb > 0)
+        admin1.urb[i,] = admin1.urb[i,] + admin2.urb[k,]*currUrb
+      if(currRur > 0)
+        admin1.rur[i,] = admin1.rur[i,] + admin2.rur[k,]*currRur
+    }
+    admin1[i,] = admin1[i,]/(totUrb+totRur)
+    admin1.urb[i,] = admin1.urb[i,]/totUrb
+    admin1.rur[i,] = admin1.rur[i,]/totRur
+  }
+  
+  ## Calculate quantiles
+  pAdmin1     = matrix(0, nrow = 37, ncol = 3)
+  pAdmin1.rur = matrix(0, nrow = 37, ncol = 3)
+  pAdmin1.urb = matrix(0, nrow = 37, ncol = 3)
+  for(i in 1:37){
+    pAdmin1[i,] = quantile(admin1[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin1.rur[i,] = quantile(admin1.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin1.urb[i,] = quantile(admin1.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+  }
+  
+  pAdmin2     = matrix(0, nrow = 774, ncol = 3)
+  pAdmin2.rur = matrix(0, nrow = 774, ncol = 3)
+  pAdmin2.urb = matrix(0, nrow = 774, ncol = 3)
+  for(i in 1:774){
+    pAdmin2[i,] = quantile(admin2[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin2.rur[i,] = quantile(admin2.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    pAdmin2.urb[i,] = quantile(admin2.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+  }
+  
+  ## Make result objects (admin1)
+  synt1.overD.ur = data.frame(admin1 = rep(levels(myData$admin1Fac), 2),
+                              urb = rep( c("R", "U"), each = 37),
+                              p_Low = c(pAdmin1.rur[, 1], pAdmin1.urb[, 1]),
+                              p_Med = c(pAdmin1.rur[, 2], pAdmin1.urb[, 2]),
+                              p_Upp = c(pAdmin1.rur[, 3], pAdmin1.urb[, 3]))
+  idx = order(synt1.overD.ur$admin1, synt1.overD.ur$urb)
+  synt1.overD.ur = synt1.overD.ur[idx,]
+  
+  synt1.overD = data.frame(admin1 = levels(myData$admin1Fac),
+                           p_Low = pAdmin1[, 1],
+                           p_Med = pAdmin1[, 2],
+                           p_Upp = pAdmin1[, 3])
+  idx = order(synt1.overD$admin1)
+  synt1.overD = synt1.overD[idx,]
+  
+  ## Make result objects (admin2)
+  synt2.overD.ur = data.frame(admin2 = rep(levels(myData$admin2Fac), 2),
+                              urb = rep( c("R", "U"), each = 774),
+                              p_Low = c(pAdmin2.rur[, 1], pAdmin2.urb[, 1]),
+                              p_Med = c(pAdmin2.rur[, 2], pAdmin2.urb[, 2]),
+                              p_Upp = c(pAdmin2.rur[, 3], pAdmin2.urb[, 3]))
+  idx = order(synt2.overD.ur$admin2, synt2.overD.ur$urb)
+  synt2.overD.ur = synt2.overD.ur[idx,]
+  
+  synt2.overD = data.frame(admin2 = levels(myData$admin2Fac),
+                           p_Low = pAdmin2[, 1],
+                           p_Med = pAdmin2[, 2],
+                           p_Upp = pAdmin2[, 3])
+  idx = order(synt2.overD$admin2)
+  synt2.overD = synt2.overD[idx,]
+  
+  ## Return results
+  return(list(admin1.ur = synt1.overD.ur,
+              admin1 = synt1.overD,
+              admin2.ur = synt2.overD.ur,
+              admin2 = synt2.overD,
+              samples = list(p = admin1,
+                             pRur = admin1.rur,
+                             pUrb = admin1.urb)))
+}
+
 # Compute smoothed direct
-getNigeriaSmoothDirect = function(direct.est, nigeriaGraph, bym2prior){
+getNigeriaSmoothDirect = function(nigeriaGraph_admin1,
+                                  direct.est,
+                                  rEffect,
+                                  xCov = NULL,
+                                  rPrior){
   # make dataobject
   smoothed.data = data.frame(y = direct.est$logitP,
                              se = direct.est$se,
                              idxAdmin1 = 1:37)
+  if(!is.null(xCov)){
+    colnames(xCov) = c("X1", "X2", "X3", "X4", "X5")
+    smoothed.data = cbind(smoothed.data, xCov)
+  }
   
   # Formula
-  smoothed.formula = y ~ 1 + f(idxAdmin1,
-                               model = "bym2",
-                               graph = nigeriaGraph,
-                               hyper = bym2prior,
-                               scale.model = TRUE)
+  if(!is.null(xCov)){
+    if(rEffect == "iid"){
+      smoothed.formula = y ~ 1 + X1 + X2 + X3 + X4 + X5 +
+        f(idxAdmin1,
+          model = "iid",
+          hyper = rPrior)
+    }
+    if(rEffect == "bym"){
+      smoothed.formula = y ~ 1 + X1 + X2 + X3 + X4 + X5 +
+        f(idxAdmin1,
+          model = "bym2",
+          graph = nigeriaGraph_admin1,
+          hyper = rPrior,
+          scale.model = TRUE)
+    }
+  } else{
+    if(rEffect == "iid"){
+      smoothed.formula = y ~ 1 + f(idxAdmin1,
+                                   model = "iid",
+                                   hyper = rPrior)
+    }
+    if(rEffect == "bym"){
+      smoothed.formula = y ~ 1 + f(idxAdmin1,
+                                   model = "bym2",
+                                   graph = nigeriaGraph_admin1,
+                                   hyper = rPrior,
+                                   scale.model = TRUE)
+    }
+  }
   
   # Run model
   smoothed.inla.res = inla(formula = smoothed.formula,
@@ -123,31 +489,102 @@ getFixedLGM = function(myData, clustPrior){
                   family = "binomial",
                   Ntrials = Ntrials,
                   control.fixed = list(prec = 1e-4, prec.intercept = 1e-4),
-                  control.compute=list(config = TRUE),
+                  control.compute=list(config = TRUE, return.marginals.predictor = TRUE),
                   control.predictor = list(compute = TRUE))
   
   return(res.inla)
 }
 
 # Compute areal BYM model
-getAreaLGM = function(myData, nigeriaGraph, bym2prior, clustPrior, admin2 = FALSE){
+getAreaLGM = function(myData, nigeriaGraph, bym2prior, clustPrior, admin2 = FALSE, space = TRUE, covarModel = FALSE){
+  # Introduce dummy variable
+  myData$urbanDummy = (myData$urban == "U")+0
+  
   # Formula
   if(!admin2){
-    formula = measles ~ urban + f(as.numeric(admin1Fac), 
-                                  model = "bym2",
-                                  graph = nigeriaGraph,
-                                  scale.model = TRUE) + 
-      f(clusterIdx,
-        model = "iid",
-        hyper = clustPrior)
+    if(space){
+      if(covarModel){
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + 
+          f(as.numeric(admin1Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }else{
+        formula = measles ~ urbanDummy + 
+          f(as.numeric(admin1Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
+    }else{
+      if(covarModel){
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy +
+          f(as.numeric(admin1Fac),
+            model = "iid",
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }else{
+        formula = measles ~ urbanDummy +
+          f(as.numeric(admin1Fac),
+            model = "iid",
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
+    }
   }else{
-    formula = measles ~ urban + f(as.numeric(admin2Fac), 
-                                  model = "bym2",
-                                  graph = nigeriaGraph,
-                                  scale.model = TRUE) +
-      f(clusterIdx,
-        model = "iid",
-        hyper = clustPrior)
+    if(space){
+      if(covarModel){
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + 
+          f(as.numeric(admin2Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }else{
+        formula = measles ~ urbanDummy + 
+          f(as.numeric(admin2Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
+    }else{
+      if(covarModel){
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy +
+          f(as.numeric(admin2Fac),
+            model = "iid",
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }else{
+        formula = measles ~ urbanDummy +
+          f(as.numeric(admin2Fac),
+            model = "iid",
+            hyper = bym2prior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
+    }
   }
   
   # Fit
@@ -156,7 +593,7 @@ getAreaLGM = function(myData, nigeriaGraph, bym2prior, clustPrior, admin2 = FALS
                   family = "binomial",
                   Ntrials = Ntrials,
                   control.fixed = list(prec = 1e-4, prec.intercept = 1e-4),
-                  control.compute=list(config = TRUE),
+                  control.compute=list(config = TRUE, return.marginals.predictor = TRUE),
                   control.predictor = list(compute = TRUE))
   
   return(res.inla)
@@ -172,13 +609,16 @@ getContLGM = function(myData, mesh, useCov = FALSE, prior.range, prior.sigma, cl
   A = inla.spde.make.A(mesh = mesh,
                        loc = cbind(myData$lon, myData$lat))
   
+  # Introduce dummy variable
+  myData$urbanDummy = (myData$urban == "U") + 0
+  
   # stack
   if(!useCov){
     stk = inla.stack(data = list(measles = myData$measles,
                                  Ntrials = myData$Ntrials),
                      A = list(A,1),
                      effects = list(list(s = 1:spde$n.spde),
-                                    list(urban = (myData$urban == "U")+0 ,
+                                    list(urbanDummy = myData$urbanDummy,
                                          intercept = 1,
                                          clusterIdx = myData$clusterIdx)))
   } else{
@@ -186,7 +626,7 @@ getContLGM = function(myData, mesh, useCov = FALSE, prior.range, prior.sigma, cl
                                  Ntrials = myData$Ntrials),
                      A = list(A,1),
                      effects = list(list(s = 1:spde$n.spde),
-                                    list(urban = (myData$urban == "U")+0 ,
+                                    list(urbanDummy = myData$urbanDummy,
                                          intercept = 1,
                                          poverty = myData$poverty,
                                          lAccess = myData$lAccess,
@@ -195,9 +635,9 @@ getContLGM = function(myData, mesh, useCov = FALSE, prior.range, prior.sigma, cl
     
   # Formula
   if(!useCov){
-    formula_spde = measles ~ intercept + urban + f(s, model = spde) + f(clusterIdx, model = "iid", hyper = clustPrior) - 1
+    formula_spde = measles ~ intercept + urbanDummy + f(s, model = spde) + f(clusterIdx, model = "iid", hyper = clustPrior) - 1
   } else{
-    formula_spde = measles ~ intercept + urban + poverty + lAccess + f(s, model = spde) + f(clusterIdx, model = "iid", hyper = clustPrior) - 1
+    formula_spde = measles ~ intercept + urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + f(s, model = spde) + f(clusterIdx, model = "iid", hyper = clustPrior) - 1
   }
   
   # Fit
@@ -209,7 +649,7 @@ getContLGM = function(myData, mesh, useCov = FALSE, prior.range, prior.sigma, cl
                        control.fixed = list(prec = 1e-4,
                                             prec.intercept = 1e-4),
                        control.predictor = list(A = inla.stack.A(stk), compute = TRUE),
-                       control.compute = list(config = TRUE))
+                       control.compute = list(config = TRUE, return.marginals.predictor = TRUE))
   
   return(res.inla.spde)
 }
@@ -223,7 +663,7 @@ aggSPDE = function(res.inla, popList, myData, nameAdm1, nSamp = 1000, onlyAdm2 =
     intIdx = res.inla$misc$configs$contents$start[5]
     urbIdx = res.inla$misc$configs$contents$start[6]
     if(!is.null(listCov)){
-      covIdx = res.inla$misc$configs$contents$start[6 + (1:length(listCov))]
+      covIdx = res.inla$misc$configs$contents$start[6 + (1:4)]
     }
     spaceIdx = res.inla$misc$configs$contents$start[3]:(res.inla$misc$configs$contents$start[4]-1)
     intSample = matrix(NA, nrow = 1, ncol = nSamp)
@@ -263,11 +703,11 @@ aggSPDE = function(res.inla, popList, myData, nameAdm1, nSamp = 1000, onlyAdm2 =
       
       # Get covariate values
       if(!is.null(listCov)){
-        Xdesign = matrix(NA, nrow = dim(xyCor)[1], ncol = 2)
-        for(j in 1:length(listCov)){
-          Xdesign[,j] = raster::extract(x = listCov[[j]]$raster,
-                                        y = xyCor)
-        }
+        tmpDesign1 = raster::extract(x = listCov[[1]]$raster,
+                                     y = xyCor)
+        tmpDesign2 = raster::extract(x = listCov[[2]]$raster,
+                                     y = xyCor)
+        Xdesign = cbind(tmpDesign1, tmpDesign2, tmpDesign1*(idxUrb+0), tmpDesign2*(idxUrb+0))
       }
       
       # Map spatial effect to these coordinates
@@ -477,7 +917,7 @@ aggFixed = function(res.inla, popList, myData, nSamp = 1000){
 
 
 # Aggregate on Admin1 level
-aggBYM_admin1 = function(res.inla, popList, myData, nSamp = 1000){
+aggBYM_admin1 = function(res.inla, popList, myData, nSamp = 1000, space = TRUE){
   # Draw posterior samples
   post.sample = inla.posterior.sample(n = nSamp, result = res.inla)
   
@@ -528,6 +968,10 @@ aggBYM_admin1 = function(res.inla, popList, myData, nSamp = 1000){
   
   # Sample urban and rural
   nugSimStd = rnorm(1e5, mean = 0, sd = 1)
+  nuggetIdx = 3
+  if(!space){
+    nuggetIdx = 2
+  }
   for(i in 1:dim(etaUrb.meas)[1]){
     for(j in 1:37){
       # Nugget is measurement error
@@ -535,13 +979,17 @@ aggBYM_admin1 = function(res.inla, popList, myData, nSamp = 1000){
       etaRur.meas[i,j] = post.sample[[i]]$latent[intIdx] + post.sample[[i]]$latent[spatIdx + j-1]
       
       # Nugget is real
-      nugSimUrb = rnorm(clustNumUrb[j], mean = 0, sd = 1/sqrt(post.sample[[i]]$hyperpar[3]))
-      nugSimRur = rnorm(clustNumRur[j], mean = 0, sd = 1/sqrt(post.sample[[i]]$hyperpar[3]))
+      nugSimUrb = rnorm(clustNumUrb[j], mean = 0, sd = 1/sqrt(post.sample[[i]]$hyperpar[nuggetIdx]))
+      if(clustNumRur[j] > 0){
+        nugSimRur = rnorm(clustNumRur[j], mean = 0, sd = 1/sqrt(post.sample[[i]]$hyperpar[nuggetIdx]))
+      } else{
+        nugSimRur = 0
+      }
       etaUrb.real[i,j] = logit(mean(expit(etaUrb.meas[i,j] + nugSimUrb)))
       etaRur.real[i,j] = logit(mean(expit(etaRur.meas[i,j] + nugSimRur)))
       
       # Nugget is overdispersion
-      cSD = 1/sqrt(post.sample[[i]]$hyperpar[3])
+      cSD = 1/sqrt(post.sample[[i]]$hyperpar[nuggetIdx])
       etaUrb.overD[i,j] = logit(mean(expit(etaUrb.meas[i,j] + nugSimStd*cSD)))
       etaRur.overD[i,j] = logit(mean(expit(etaRur.meas[i,j] + nugSimStd*cSD)))
     }
@@ -659,7 +1107,7 @@ aggBYM_admin1 = function(res.inla, popList, myData, nSamp = 1000){
 
 
 # Aggregate on Admin2 level
-aggBYM_admin2 = function(res.inla, popList, nameAdm1, myData, nSamp = 1000){
+aggBYM_admin2 = function(res.inla, popList, nameAdm1, myData, nSamp = 1000, space = TRUE){
   # Draw posterior samples
   post.sample = inla.posterior.sample(n = nSamp, result = res.inla)
   
@@ -674,6 +1122,10 @@ aggBYM_admin2 = function(res.inla, popList, nameAdm1, myData, nSamp = 1000){
   urbIdx  = res.inla$misc$configs$contents$start[5]
   
   # Sample urban and rural
+  nuggetIdx = 3
+  if(!space){
+    nuggetIdx = 2
+  }
   nugSimStd = rnorm(1e5, mean = 0, sd = 1)
   for(i in 1:dim(etaUrb.overD)[1]){
     for(j in 1:774){
@@ -682,7 +1134,7 @@ aggBYM_admin2 = function(res.inla, popList, nameAdm1, myData, nSamp = 1000){
       etaRur.tmp = post.sample[[i]]$latent[intIdx] + post.sample[[i]]$latent[spatIdx + j-1]
       
       # Nugget is overdispersion
-      cSD = 1/sqrt(post.sample[[i]]$hyperpar[3])
+      cSD = 1/sqrt(post.sample[[i]]$hyperpar[nuggetIdx])
       etaUrb.overD[i,j] = logit(mean(expit(etaUrb.tmp + nugSimStd*cSD)))
       etaRur.overD[i,j] = logit(mean(expit(etaRur.tmp + nugSimStd*cSD)))
     }
@@ -1005,4 +1457,407 @@ plotAreaCol = function(fName, estVal, graph, colLim, leg = NULL){
   
   # Close graphical object
   dev.off()
+}
+
+
+# Compute areal BYM model
+getUnitLevelModel = function(myData,
+                             nigeriaGraph,
+                             areaPrior,
+                             clustPrior, 
+                             randomEffect,
+                             admin2 = FALSE, 
+                             covarModel = FALSE){
+  # Introduce dummy variable
+  myData$urbanDummy = (myData$urban == "U") + 0
+  
+  # Formula
+  if(!admin2){
+    if(randomEffect == "none"){
+      if(!covarModel){
+        formula = measles ~ urbanDummy + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      } else{
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
+      
+    } else if(randomEffect == "iid"){
+      if(!covarModel){
+        formula = measles ~ urbanDummy + 
+          f(as.numeric(admin1Fac),
+            model = "iid",
+            hyper = areaPrior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      } else{
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + 
+          f(as.numeric(admin1Fac),
+            model = "iid",
+            hyper = areaPrior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
+    } else if(randomEffect == "bym2"){
+      if(!covarModel){
+        formula = measles ~ urbanDummy +
+          f(as.numeric(admin1Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = areaPrior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      } else{
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + 
+          f(as.numeric(admin1Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = areaPrior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
+    } else{
+      error("No valid 'randomEffect' specified")
+    }
+  } else{
+    if(randomEffect == "none"){
+      if(!covarModel){
+        formula = measles ~ urbanDummy + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      } else{
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
+      
+    } else if(randomEffect == "iid"){
+      if(!covarModel){
+        formula = measles ~ urbanDummy + 
+          f(as.numeric(admin2Fac),
+            model = "iid",
+            hyper = areaPrior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      } else{
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + 
+          f(as.numeric(admin2Fac),
+            model = "iid",
+            hyper = areaPrior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
+    } else if(randomEffect == "bym2"){
+      if(!covarModel){
+        formula = measles ~ urbanDummy +
+          f(as.numeric(admin2Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = areaPrior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      } else{
+        formula = measles ~ urbanDummy + poverty*urbanDummy + lAccess*urbanDummy + 
+          f(as.numeric(admin2Fac),
+            model = "bym2",
+            graph = nigeriaGraph,
+            scale.model = TRUE,
+            hyper = areaPrior) + 
+          f(clusterIdx,
+            model = "iid",
+            hyper = clustPrior)
+      }
+    } else{
+      error("No valid 'randomEffect' specified")
+    }
+  } # END-IF-ADMIN2
+
+  # Fit
+  res.inla = inla(formula = formula,
+                  data = myData,
+                  family = "binomial",
+                  Ntrials = Ntrials,
+                  control.fixed = list(prec = 1e-4, prec.intercept = 1e-4),
+                  control.compute=list(config = TRUE,
+                                       return.marginals.predictor = TRUE),
+                  control.predictor = list(compute = TRUE))
+  
+  return(res.inla)
+}
+
+aggUnitLevel = function(res.inla,
+                        popList,
+                        myData,
+                        nameAdm1,
+                        nSamp = 1000,
+                        onlyAdm2 = 1:774,
+                        onlyAdm1 = 1:37,
+                        listCov = NULL,
+                        numAreas,
+                        randEff,
+                        covarModel,
+                        adm2Toadm1,
+                        areaIsAdmin2 = FALSE){
+  ## Step 1: Extract posterior samples of quantities of interest
+  # Sample from inla object
+  post.sample = inla.posterior.sample(n = nSamp, result = res.inla)
+  
+  # Extract covariate effects
+  if(randEff != "none"){
+    covIdx = res.inla$misc$configs$contents$start[-(1:3)]
+    spaceIdx = res.inla$misc$configs$contents$start[2] + (0:(numAreas-1))
+  }else{
+    covIdx = res.inla$misc$configs$contents$start[-(1:2)]
+  }
+  covSample = matrix(NA, nrow = length(covIdx), ncol = nSamp)
+  if(randEff != "none"){
+    spaceSample = matrix(NA, nrow = length(spaceIdx), ncol = nSamp)
+  }
+  clustSD = matrix(NA, nrow = 1, ncol = nSamp)
+  
+  if(randEff == "bym2"){
+    nugIdx = 3
+  } else if(randEff == "iid"){
+    nugIdx = 2
+  } else if(randEff == "none"){
+    nugIdx = 1
+  } else{
+    error('Invalid randEff')
+  }
+  for(i in 1:nSamp){
+    clustSD[1,i] = 1/sqrt(post.sample[[i]]$hyperpar[nugIdx])
+    covSample[,i] = post.sample[[i]]$latent[covIdx]
+    if(randEff != "none"){
+      spaceSample[,i] = post.sample[[i]]$latent[spaceIdx]
+    }
+  }
+  
+  ## Step 2: Admin2 samples
+    # Iterate through admin2 areas
+    admin2 = matrix(NA, nrow = 774, ncol = nSamp)
+    admin2.urb = matrix(NA, nrow = 774, ncol = nSamp)
+    admin2.rur = matrix(NA, nrow = 774, ncol = nSamp)
+    for(i in 1:774){
+      if(!(i%in%onlyAdm2)){
+        next
+      }
+      print(i)
+      # Urban indicies & cell numbers from raster
+      idxUrb = popList$idxUrb[[i]]
+      cellNum = popList$popAdm2.2018[[i]][[1]][,1]
+      
+      # Get x and y coordinates
+      pop2018 = raster("../Data/Nigeria_pop/nga_ppp_2018_UNadj.tif")
+      xyCor = xyFromCell(pop2018, cell = cellNum)
+      
+      # Get covariate values
+      Xdesign = cbind(1, idxUrb+0)
+      if(covarModel){
+        tmpDesign1 = raster::extract(x = listCov[[1]]$raster,
+                                    y = xyCor)
+        tmpDesign2 = raster::extract(x = listCov[[2]]$raster,
+                                     y = xyCor)
+        Xdesign = cbind(Xdesign, tmpDesign1, tmpDesign2, tmpDesign1*(idxUrb+0), tmpDesign2*(idxUrb+0))
+      }
+      
+      # Get populations
+      urbPop = sum(popList$popAdm2.2018[[i]][[2]][idxUrb], na.rm = TRUE)
+      rurPop = sum(popList$popAdm2.2018[[i]][[2]][!idxUrb], na.rm = TRUE)
+      uProp = urbPop/(urbPop+rurPop)
+      
+      # Spatial effect idx
+      if(randEff != "none"){
+        idxSpace = i
+        if(!areaIsAdmin2){
+          idxSpace = adm2Toadm1[idxSpace]
+        }
+      }
+
+      
+      # Calculate samples
+      localSamples = Xdesign%*%covSample
+      if(randEff != "none"){
+        localSamples = localSamples + kronecker(matrix(1, nrow = dim(Xdesign)[1], ncol = 1), spaceSample[idxSpace,,drop=FALSE])
+      }
+      localSamples = localSamples + matrix(rnorm(length(localSamples)), nrow = dim(localSamples)[1], ncol = dim(localSamples)[2])*kronecker(matrix(clustSD, nrow = 1, ncol = nSamp), matrix(1, nrow = dim(localSamples)[1], ncol = 1))
+      localSamples = 1/(1+exp(-localSamples))
+      localSamples = localSamples*kronecker(matrix(1, nrow = 1, ncol = nSamp), matrix(popList$popAdm2.2018[[i]][[2]], nrow = dim(localSamples)[1], ncol = 1))
+      
+      # Save in data object
+      admin2[i, ] = colSums(localSamples, na.rm = TRUE)/(urbPop+rurPop)
+      admin2.urb[i,] = colSums(localSamples[idxUrb,, drop = FALSE], na.rm = TRUE)/urbPop
+      admin2.rur[i,] = colSums(localSamples[!idxUrb,,drop = FALSE], na.rm = TRUE)/rurPop
+    }
+  
+  ## Step 3: Admin1 samples
+    # Iterate through admin2 areas
+    admin1 = matrix(0, nrow = 37, ncol = nSamp)
+    admin1.urb = matrix(0, nrow = 37, ncol = nSamp)
+    admin1.rur = matrix(0, nrow = 37, ncol = nSamp)
+    unNameAdm1 = unique(nameAdm1)
+    for(i in 1:37){
+      if(!(i%in%onlyAdm1)){
+        next
+      }
+      # Get indicies of admin2 areas
+      idxAdm2 = which(nameAdm1 == unNameAdm1[i])
+      totUrb = 0
+      totRur = 0
+      for(k in idxAdm2){
+        idxUrb = popList$idxUrb[[k]]
+        currUrb = sum(popList$popAdm2.2018[[k]][[2]][idxUrb], na.rm = TRUE)
+        currRur = sum(popList$popAdm2.2018[[k]][[2]][!idxUrb], na.rm = TRUE)
+        totUrb = totUrb + currUrb
+        totRur = totRur + currRur
+        
+        admin1[i,] = admin1[i,] + admin2[k,]*(currUrb+currRur)
+        if(currUrb > 0)
+          admin1.urb[i,] = admin1.urb[i,] + admin2.urb[k,]*currUrb
+        if(currRur > 0)
+          admin1.rur[i,] = admin1.rur[i,] + admin2.rur[k,]*currRur
+      }
+      admin1[i,] = admin1[i,]/(totUrb+totRur)
+      admin1.urb[i,] = admin1.urb[i,]/totUrb
+      admin1.rur[i,] = admin1.rur[i,]/totRur
+    }
+    
+    ## Calculate quantiles
+    pAdmin1     = matrix(0, nrow = 37, ncol = 3)
+    pAdmin1.rur = matrix(0, nrow = 37, ncol = 3)
+    pAdmin1.urb = matrix(0, nrow = 37, ncol = 3)
+    for(i in 1:37){
+      pAdmin1[i,] = quantile(admin1[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+      pAdmin1.rur[i,] = quantile(admin1.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+      pAdmin1.urb[i,] = quantile(admin1.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    }
+    
+    pAdmin2     = matrix(0, nrow = 774, ncol = 3)
+    pAdmin2.rur = matrix(0, nrow = 774, ncol = 3)
+    pAdmin2.urb = matrix(0, nrow = 774, ncol = 3)
+    for(i in 1:774){
+      pAdmin2[i,] = quantile(admin2[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+      pAdmin2.rur[i,] = quantile(admin2.rur[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+      pAdmin2.urb[i,] = quantile(admin2.urb[i,], probs = c(0.025, 0.50, 0.975), na.rm = TRUE)
+    }
+  
+  ## Make result objects (admin1)
+  spat1.overD.ur = data.frame(admin1 = rep(levels(myData$admin1Fac), 2),
+                              urb = rep( c("R", "U"), each = 37),
+                              p_Low = c(pAdmin1.rur[, 1], pAdmin1.urb[, 1]),
+                              p_Med = c(pAdmin1.rur[, 2], pAdmin1.urb[, 2]),
+                              p_Upp = c(pAdmin1.rur[, 3], pAdmin1.urb[, 3]))
+  idx = order(spat1.overD.ur$admin1, spat1.overD.ur$urb)
+  spat1.overD.ur = spat1.overD.ur[idx,]
+  
+  spat1.overD = data.frame(admin1 = levels(myData$admin1Fac),
+                           p_Low = pAdmin1[, 1],
+                           p_Med = pAdmin1[, 2],
+                           p_Upp = pAdmin1[, 3])
+  idx = order(spat1.overD$admin1)
+  spat1.overD = spat1.overD[idx,]
+  
+  ## Make result objects (admin2)
+  spat2.overD.ur = data.frame(admin2 = rep(levels(myData$admin2Fac), 2),
+                              urb = rep( c("R", "U"), each = 774),
+                              p_Low = c(pAdmin2.rur[, 1], pAdmin2.urb[, 1]),
+                              p_Med = c(pAdmin2.rur[, 2], pAdmin2.urb[, 2]),
+                              p_Upp = c(pAdmin2.rur[, 3], pAdmin2.urb[, 3]))
+  idx = order(spat2.overD.ur$admin2, spat2.overD.ur$urb)
+  spat2.overD.ur = spat2.overD.ur[idx,]
+  
+  spat2.overD = data.frame(admin2 = levels(myData$admin2Fac),
+                           p_Low = pAdmin2[, 1],
+                           p_Med = pAdmin2[, 2],
+                           p_Upp = pAdmin2[, 3])
+  idx = order(spat2.overD$admin2)
+  spat2.overD = spat2.overD[idx,]
+  
+  ## Return results
+  return(list(admin1.ur = spat1.overD.ur,
+              admin1 = spat1.overD,
+              admin2.ur = spat2.overD.ur,
+              admin2 = spat2.overD,
+              samples = list(p = admin1,
+                             pRur = admin1.rur,
+                             pUrb = admin1.urb)))
+}
+
+computeArealCov = function(popList, nameAdm1, listCov){
+  # Iterate through admin2 areas
+  admin2.cov = matrix(NA, nrow = 774, ncol = 5)
+  for(i in 1:774){
+    # Urban indicies & cell numbers from raster
+    idxUrb = popList$idxUrb[[i]]
+    cellNum = popList$popAdm2.2018[[i]][[1]][,1]
+    
+    # Get x and y coordinates
+    pop2018 = raster("../Data/Nigeria_pop/nga_ppp_2018_UNadj.tif")
+    xyCor = xyFromCell(pop2018, cell = cellNum)
+    
+    # Get covariate values
+    tmpDesign1 = raster::extract(x = listCov[[1]]$raster,
+                                 y = xyCor)
+    tmpDesign2 = raster::extract(x = listCov[[2]]$raster,
+                                 y = xyCor)
+    Xdesign = cbind(idxUrb+0, tmpDesign1, tmpDesign2, tmpDesign1*(idxUrb+0), tmpDesign2*(idxUrb+0))
+    
+    # Full resolution
+    idxSub = 1:dim(Xdesign)[1]
+    idxSub = idxSub[!is.na(popList$popAdm2.2018[[i]][[2]][idxSub])]
+    for(j in 1:length(listCov)){
+      idxSub = idxSub[!is.na(Xdesign[idxSub,j])]
+    }
+    inSample = rep(FALSE, dim(Xdesign)[1])
+    inSample[idxSub] = TRUE
+    Xdesign = Xdesign[idxSub,]
+    
+    # Get populations
+    urbPop = sum(popList$popAdm2.2018[[i]][[2]][inSample & idxUrb], na.rm = TRUE)
+    rurPop = sum(popList$popAdm2.2018[[i]][[2]][inSample & !idxUrb], na.rm = TRUE)
+    
+    # Calculate samples
+    localSamples = Xdesign*kronecker(matrix(1, nrow = 1, ncol = dim(Xdesign)[2]), matrix(popList$popAdm2.2018[[i]][[2]][idxSub], nrow = length(idxSub), ncol = 1))
+    
+    # Save in data object
+    admin2.cov[i, ] = colSums(localSamples, na.rm = TRUE)/(urbPop+rurPop)
+  }
+  
+  # Iterate through admin2 areas
+  admin1.cov = matrix(0, nrow = 37, ncol = 5)
+  unNameAdm1 = unique(nameAdm1)
+  for(i in 1:37){
+    # Get indicies of admin2 areas
+    idxAdm2 = which(nameAdm1 == unNameAdm1[i])
+    totUrb = 0
+    totRur = 0
+    for(k in idxAdm2){
+      idxUrb = popList$idxUrb[[k]]
+      currUrb = sum(popList$popAdm2.2018[[k]][[2]][idxUrb], na.rm = TRUE)
+      currRur = sum(popList$popAdm2.2018[[k]][[2]][!idxUrb], na.rm = TRUE)
+      totUrb = totUrb + currUrb
+      totRur = totRur + currRur
+      
+      admin1.cov[i,] = admin1.cov[i,] + admin2.cov[k,]*(currUrb+currRur)
+    }
+    admin1.cov[i,] = admin1.cov[i,]/(totUrb+totRur)
+  }
+  
+  return(list(admin1.cov = admin1.cov,
+              admin2.cov = admin2.cov))
 }

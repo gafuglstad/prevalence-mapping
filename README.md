@@ -1,6 +1,12 @@
 <h1>Code for "The Two Cultures for Prevalence Mapping: Small Area Estimation and Spatial Statistics"</h1>
 <a href="https://arxiv.org/abs/2110.09576">arXiv preprint</a>
 
+<h2> Prerequisites </h2>
+<ul>
+	<li> Code is written in R and uses packages on CRAN </li>
+	<li> Additionally, the testing version of INLA needs to be installed: https://www.r-inla.org/download-install </li>
+</ul>
+
 <h2> Description </h2>
 The paper concerns spatial and spatio-temporal estimation of prevalences in administrative areas. This repository contains
 the code for two case studies: spatial estimation of vaccination coverage in Nigeria in 2018, and spatio-temporal estimation of neonatal mortality rate (NMR) in Malawi in 2000&ndash;2019.
