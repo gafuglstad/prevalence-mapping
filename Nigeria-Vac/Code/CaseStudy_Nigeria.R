@@ -1599,4 +1599,183 @@ for(cvFold in 1:10){
 
 # Save everything
 save.image(paste('EverythingDone.RData', sep = ""))
+
+
+# TODO: REMOVE THIS
+save(file = "results.RData", direct.est, fixed.model, res.noSpace.cov,
+     res.admin1.iid.noCov, res.admin1.iid.cov, res.admin1.bym.noCov,
+     res.admin1.bym.cov, res.admin2.bym.noCov, res.admin2.bym.cov,
+     res.SmoothDirect.iid, res.SmoothDirect.iid.cov, res.SmoothDirect.bym,
+     res.SmoothDirect.bym.cov, allLevels.spde, allLevels.spdeCov, 
+     nigeriaMap, nigeriaMap_admin1, fixed.holdOut, allLevels.spde.holdOut,
+     allLevels.spdeCov.holdOut)
+
+# Summary figures
+transSD = function(muVal, sdVal){
+  res = rep(0, 37)
+  for(i in 1:37){
+    logitSamples = rnorm(1e6, mean = muVal[i], sdVal[i])
+    pSamples = expit(logitSamples)
+    res[i] = sd(pSamples)
+  }
+  return(res)
+}
+
+## Summary of estimates
+  resDF = data.frame(Method = rep(c("Weighted estimate", 
+                                "Fay-Herriot: IID", "Fay-Herriot: IID+Cov", "Fay-Herriot: BYM", "Fay-Herriot: BYM+cov",
+                                "U/R only", "Covariates",
+                                "IID(A1)", "IID(A1)+cov", "BYM(A1)", "BYM(A1)+cov",
+                                "BYM(A2)", "BYM(A2)+cov",
+                                "GRF", "GRF+cov"), each = 37),
+                     order = rep(15:1, each = 37),
+                     Admin1 = c(direct.est$admin1,
+                                res.SmoothDirect.iid$res$admin1,
+                                res.SmoothDirect.iid.cov$res$admin1,
+                                res.SmoothDirect.bym$res$admin1,
+                                res.SmoothDirect.bym.cov$res$admin1,
+                                fixed.model$overD$admin1,
+                                res.noSpace.cov$est$admin1$admin1,
+                                res.admin1.iid.noCov$est$admin1$admin1,
+                                res.admin1.iid.cov$est$admin1$admin1,
+                                res.admin1.bym.noCov$est$admin1$admin1,
+                                res.admin1.bym.cov$est$admin1$admin1,
+                                res.admin2.bym.noCov$est$admin1$admin1,
+                                res.admin2.bym.cov$est$admin1$admin1,
+                                allLevels.spde$overD$admin1, 
+                                allLevels.spdeCov$overD$admin1),
+                     MCV1 = c(direct.est$p_Med,
+                             res.SmoothDirect.iid$res$p_Med,
+                             res.SmoothDirect.iid.cov$res$p_Med,
+                             res.SmoothDirect.bym$res$p_Med,
+                             res.SmoothDirect.bym.cov$res$p_Med,
+                             fixed.model$overD$p_Med,
+                             res.noSpace.cov$est$admin1$p_Med,
+                             res.admin1.iid.noCov$est$admin1$p_Med,
+                             res.admin1.iid.cov$est$admin1$p_Med,
+                             res.admin1.bym.noCov$est$admin1$p_Med,
+                             res.admin1.bym.cov$est$admin1$p_Med,
+                             res.admin2.bym.noCov$est$admin1$p_Med,
+                             res.admin2.bym.cov$est$admin1$p_Med,
+                             allLevels.spde$overD$p_Med, 
+                             allLevels.spdeCov$overD$p_Med),
+                     StdDev = c(transSD(direct.est$logitP, direct.est$se),
+                            transSD(res.SmoothDirect.iid$res$logitP, res.SmoothDirect.iid$res$sd),
+                            transSD(res.SmoothDirect.iid.cov$res$logitP, res.SmoothDirect.iid.cov$res$sd),
+                            transSD(res.SmoothDirect.bym$res$logitP, res.SmoothDirect.bym$res$sd),
+                            transSD(res.SmoothDirect.bym.cov$res$logitP, res.SmoothDirect.bym.cov$res$sd),
+                            apply(fixed.model$samples$p.overD, 1, sd),
+                            apply(res.noSpace.cov$est$samples$p, 1, sd),
+                            apply(res.admin1.iid.noCov$est$samples$p, 1, sd),
+                            apply(res.admin1.iid.cov$est$samples$p, 1, sd),
+                            apply(res.admin1.bym.noCov$est$samples$p, 1, sd),
+                            apply(res.admin1.bym.cov$est$samples$p, 1, sd),
+                            apply(res.admin2.bym.noCov$est$samples$p, 1, sd),
+                            apply(res.admin2.bym.cov$est$samples$p, 1, sd),
+                            apply(allLevels.spde$samples$p.overD, 1, sd), 
+                            apply(allLevels.spdeCov$samples$p.overD, 1, sd)))
+  resDF$CV = resDF$StdDev/resDF$MCV1*100
+  resDF$Type = rep(as.factor(c("Direct",rep("Area-level", 4), rep("No spatial effect", 2),rep("Admin1", 4), rep("Admin2", 2),rep("GRF", 2))), each = 37)
   
+  boxMCV1 = ggplot(data = resDF, aes(x = reorder(Method, -order), y = MCV1)) + 
+    geom_boxplot(aes(fill = reorder(Type, -order))) + 
+    xlab("Method") +
+    ylab("Admin1 MCV1s") +
+    labs(fill = "Type") +
+    scale_fill_viridis_d() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    coord_cartesian(ylim = c(0, 1))
+  boxMCV1
+  ggsave("Figures/MCV1_summary.png", plot = boxMCV1)
+  
+  boxCV = ggplot(data = resDF, aes(x = reorder(Method, -order), y = CV)) + 
+    geom_boxplot(aes(fill = reorder(Type, -order))) + 
+    xlab("Method") +
+    ylab("Admin1 coefficients of variation (%)") +
+    labs(fill = "Type") +
+    scale_fill_viridis_d() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+    coord_trans(y = "log10")
+  boxCV
+  ggsave("Figures/CV_summary.png", plot = boxCV)
+
+## Summary of hold-out estimates
+  resDF.holdOut = data.frame(Method = rep(c("Weighted estimate", 
+                                    "Fay-Herriot: IID", "Fay-Herriot: IID+Cov", "Fay-Herriot: BYM", "Fay-Herriot: BYM+cov",
+                                    "U/R only", "Covariates",
+                                    "IID(A1)", "IID(A1)+cov", "BYM(A1)", "BYM(A1)+cov",
+                                    "BYM(A2)", "BYM(A2)+cov",
+                                    "GRF", "GRF+cov"), each = 37),
+                     order = rep(15:1, each = 37),
+                     Admin1 = c(direct.est$admin1,
+                                res.SmoothDirect.iid$res.holdOut$admin1,
+                                res.SmoothDirect.iid.cov$res.holdOut$admin1,
+                                res.SmoothDirect.bym$res.holdOut$admin1,
+                                res.SmoothDirect.bym.cov$res.holdOut$admin1,
+                                fixed.holdOut$overD$admin1, 
+                                res.noSpace.cov$est.holdOut$admin1$admin1,
+                                res.admin1.iid.noCov$est.holdOut$admin1$admin1,
+                                res.admin1.iid.cov$est.holdOut$admin1$admin1,
+                                res.admin1.bym.noCov$est.holdOut$admin1$admin1,
+                                res.admin1.bym.cov$est.holdOut$admin1$admin1,
+                                res.admin2.bym.noCov$est.holdOut$admin1$admin1,
+                                res.admin2.bym.cov$est.holdOut$admin1$admin1,
+                                allLevels.spde.holdOut$overD$admin1,
+                                allLevels.spdeCov.holdOut$overD$admin1),
+                     MCV1 = c(direct.est$p_Med,
+                              res.SmoothDirect.iid$res.holdOut$p_Med,
+                              res.SmoothDirect.iid.cov$res.holdOut$p_Med,
+                              res.SmoothDirect.bym$res.holdOut$p_Med,
+                              res.SmoothDirect.bym.cov$res.holdOut$p_Med,
+                              fixed.holdOut$overD$p_Med, 
+                              res.noSpace.cov$est.holdOut$admin1$p_Med,
+                              res.admin1.iid.noCov$est.holdOut$admin1$p_Med,
+                              res.admin1.iid.cov$est.holdOut$admin1$p_Med,
+                              res.admin1.bym.noCov$est.holdOut$admin1$p_Med,
+                              res.admin1.bym.cov$est.holdOut$admin1$p_Med,
+                              res.admin2.bym.noCov$est.holdOut$admin1$p_Med,
+                              res.admin2.bym.cov$est.holdOut$admin1$p_Med,
+                              allLevels.spde.holdOut$overD$p_Med, 
+                              allLevels.spdeCov.holdOut$overD$p_Med),
+                     StdDev = c(transSD(direct.est$logitP, direct.est$se),
+                                transSD(res.SmoothDirect.iid$res.holdOut$logitP, res.SmoothDirect.iid$res.holdOut$sd),
+                                transSD(res.SmoothDirect.iid.cov$res.holdOut$logitP, res.SmoothDirect.iid.cov$res.holdOut$sd),
+                                transSD(res.SmoothDirect.bym$res.holdOut$logitP, res.SmoothDirect.bym$res.holdOut$sd),
+                                transSD(res.SmoothDirect.bym.cov$res.holdOut$logitP, res.SmoothDirect.bym.cov$res.holdOut$sd),
+                                apply(fixed.holdOut$samples$p.overD, 1, sd),
+                                apply(res.noSpace.cov$est.holdOut$samples$p, 1, sd),
+                                apply(res.admin1.iid.noCov$est.holdOut$samples$p, 1, sd),
+                                apply(res.admin1.iid.cov$est.holdOut$samples$p, 1, sd),
+                                apply(res.admin1.bym.noCov$est.holdOut$samples$p, 1, sd),
+                                apply(res.admin1.bym.cov$est.holdOut$samples$p, 1, sd),
+                                apply(res.admin2.bym.noCov$est.holdOut$samples$p, 1, sd),
+                                apply(res.admin2.bym.cov$est.holdOut$samples$p, 1, sd),
+                                apply(allLevels.spde.holdOut$samples$p.overD, 1, sd), 
+                                apply(allLevels.spdeCov.holdOut$samples$p.overD, 1, sd))) 
+  resDF.holdOut$CV = resDF.holdOut$StdDev/resDF.holdOut$MCV1*100
+  resDF.holdOut$Type = rep(as.factor(c("Direct",rep("Area-level", 4), rep("No spatial effect", 2),rep("Admin1", 4), rep("Admin2", 2),rep("GRF", 2))), each = 37)
+  
+  boxMCV1 = ggplot(data = resDF.holdOut, aes(x = reorder(Method, -order), y = MCV1)) + 
+    geom_boxplot(aes(fill = reorder(Type, -order))) + 
+    xlab("Method") +
+    ylab("Admin1 hold-out MCV1s") +
+    labs(fill = "Type") +
+    scale_fill_viridis_d() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    coord_cartesian(ylim = c(0, 1))
+  boxMCV1
+  ggsave("Figures/MCV1_summary_holdout.png", plot = boxMCV1)
+  
+  boxCV = ggplot(data = resDF.holdOut, aes(x = reorder(Method, -order), y = CV)) + 
+    geom_boxplot(aes(fill = reorder(Type, -order))) + 
+    xlab("Method") +
+    ylab("Admin1 hold-out coefficients of variation (%)") +
+    labs(fill = "Type") +
+    scale_fill_viridis_d() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    coord_trans(y = "log10")
+  boxCV
+  ggsave("Figures/CV_summary_holdout.png", plot = boxCV)
+  
+  
+    
