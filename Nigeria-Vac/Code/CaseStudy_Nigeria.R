@@ -169,15 +169,25 @@
   load("../Data/Nigeria_AGG_DHS/DONOTCOMMIT_preparedDHSdata.RData")
   
 ## Make figure for Section 2
-  # Make figure
+  # Make figures
   png('Figures/Figure1a.png', width = 1200, height = 1200)
+  plot(nigeriaMap_admin1, asp = 1, lwd = 4)
+  points(myData$lon, myData$lat, lwd = 5, col = 'red', pch = 4, cex = 1.5)
+  plot(nigeriaMap_admin1, asp = 1, lwd = 4, add = TRUE)
+  #par(lwd = 6)
+  #legend('bottomright', pch = 4, col = 'red', legend = '2018', cex = 4, pt.cex = 3,
+  #       title = "NDHS")
+  #par(lwd = 1)
+  dev.off()
+  
+  png('Figures/Figure1b.png', width = 1200, height = 1200)
   plot(nigeriaMap, asp = 1, lwd = 4)
   points(myData$lon, myData$lat, lwd = 5, col = 'red', pch = 4, cex = 1.5)
   plot(nigeriaMap, asp = 1, lwd = 4, add = TRUE)
-  par(lwd = 6)
-  legend('bottomright', pch = 4, col = 'red', legend = '2018', cex = 4, pt.cex = 3,
-         title = "NDHS")
-  par(lwd = 1)
+  #par(lwd = 6)
+  #legend('bottomright', pch = 4, col = 'red', legend = '2018', cex = 4, pt.cex = 3,
+  #       title = "NDHS")
+  #par(lwd = 1)
   dev.off()
 
 ## Extract populations and urban/rural
