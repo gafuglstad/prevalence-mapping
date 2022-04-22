@@ -320,6 +320,21 @@ save.image("Partial_Synth.RData")
   ##############################################
   ## Unit-level models: No area-level effects ##
   ##############################################
+    # Intercept + cluster effect
+    print("Unit-level: cluster")
+    iidPrior  = list(prec = list(prior = "pc.prec",
+                                 param = c(1, 0.05)))
+    res.noSpace = runUnitLevel(myData = myData,
+                               clustPrior = iidPrior,
+                               randomEffect = "none",
+                               admin2 = FALSE,
+                               covarModel = FALSE,
+                               nameVec = nameVec,
+                               popList = nigeriaPop,
+                               listCov = listCov,
+                               nSamp = 1000)
+    save.image("Partial_UnitLevel.RData")
+
     # Covariates + cluster effect
     print("Unit-level: Covariates + cluster")
     iidPrior  = list(prec = list(prior = "pc.prec",
