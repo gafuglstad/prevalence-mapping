@@ -1856,7 +1856,7 @@ transSD = function(muVal, sdVal){
     coord_cartesian(ylim = c(0, 1))
   boxMCV1
   ggsave("Figures/MCV1_summary.png", plot = boxMCV1,
-         width = 16, height = 12, units = "cm")
+         width = 22, height = 16, units = "cm")
   
   boxCV = ggplot(data = resDF, aes(x = reorder(Method, -order), y = CV)) + 
     geom_boxplot(aes(fill = reorder(Type, -order))) + 
@@ -1868,7 +1868,7 @@ transSD = function(muVal, sdVal){
     coord_trans(y = "log10")
   boxCV
   ggsave("Figures/CV_summary.png", plot = boxCV,
-         width = 16, height = 12, units = "cm")
+         width = 22, height = 16, units = "cm")
   
 ## Summary of estimates (admin2)
   resDF = data.frame(Method = rep(c("UL-Int",
@@ -1919,7 +1919,7 @@ transSD = function(muVal, sdVal){
     coord_cartesian(ylim = c(0, 1))
   boxMCV1
   ggsave("Figures/MCV1_summary.png", plot = boxMCV1,
-         width = 16, height = 12, units = "cm")
+         width = 22, height = 16, units = "cm")
   
   boxCV = ggplot(data = resDF, aes(x = reorder(Method, -order), y = CV)) + 
     geom_boxplot(aes(fill = reorder(Type, -order))) + 
@@ -1931,7 +1931,7 @@ transSD = function(muVal, sdVal){
     coord_trans(y = "log10")
   boxCV
   ggsave("Figures/CV_summary_admin2.png", plot = boxCV,
-         width = 16, height = 12, units = "cm")
+         width = 22, height = 16, units = "cm")
 
 ## Summary of hold-out estimates
   resDF.holdOut = data.frame(Method = rep(c("Weighted estimate", 
