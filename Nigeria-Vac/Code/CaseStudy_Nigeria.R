@@ -955,6 +955,7 @@ for(cvFold in 1:10){
   
 ## Scores (admin1)
   # Extract results
+  noSpace.noCov = res.noSpace$est.holdOut
   noSpace.cov = res.noSpace.cov$est.holdOut
   
   admin1.iid.noCov = res.admin1.iid.noCov$est.holdOut
@@ -1261,7 +1262,7 @@ for(cvFold in 1:10){
                         "GRF-noCov", "GRF-Cov")
   print(round(allClusterScores, digits = 3))
   
-  
+## Make figures of variation  
   # Calculate CV
   transSD = function(muVal, sdVal){
     res = rep(0, 37)
@@ -1279,7 +1280,7 @@ for(cvFold in 1:10){
   res.SmoothDirect.iid.cov$res$pSD = transSD(res.SmoothDirect.iid.cov$res$logitP, res.SmoothDirect.iid.cov$res$sd)
   res.SmoothDirect.bym$res$pSD = transSD(res.SmoothDirect.bym$res$logitP, res.SmoothDirect.bym$res$sd)
   res.SmoothDirect.bym.cov$res$pSD = transSD(res.SmoothDirect.bym.cov$res$logitP, res.SmoothDirect.bym.cov$res$sd)
-  fixed.model$overD$pSD = apply(fixed.model$samples$p.overD, 1, sd)
+  res.noSpace$est$admin1$pSD = apply(res.noSpace$est$samples$p, 1, sd)
   res.noSpace.cov$est$admin1$pSD = apply(res.noSpace.cov$est$samples$p, 1, sd)
   res.admin1.iid.noCov$est$admin1$pSD = apply(res.admin1.iid.noCov$est$samples$p, 1, sd)
   res.admin1.iid.cov$est$admin1$pSD = apply(res.admin1.iid.cov$est$samples$p, 1, sd)
@@ -1296,7 +1297,7 @@ for(cvFold in 1:10){
   res.SmoothDirect.iid.cov$res$CV = res.SmoothDirect.iid.cov$res$pSD/res.SmoothDirect.iid.cov$res$p_Med*100
   res.SmoothDirect.bym$res$CV = res.SmoothDirect.bym$res$pSD/res.SmoothDirect.bym$res$p_Med*100
   res.SmoothDirect.bym.cov$res$CV = res.SmoothDirect.bym.cov$res$pSD/res.SmoothDirect.bym.cov$res$p_Med*100
-  fixed.model$overD$CV = fixed.model$overD$pSD/fixed.model$overD$p_Med*100
+  res.noSpace$est$admin1$CV = res.noSpace$est$admin1$pSD/res.noSpace$est$admin1$p_Med*100
   res.noSpace.cov$est$admin1$CV = res.noSpace.cov$est$admin1$pSD/res.noSpace.cov$est$admin1$p_Med*100
   res.admin1.iid.noCov$est$admin1$CV = res.admin1.iid.noCov$est$admin1$pSD/res.admin1.iid.noCov$est$admin1$p_Med*100
   res.admin1.iid.cov$est$admin1$CV = res.admin1.iid.cov$est$admin1$pSD/res.admin1.iid.cov$est$admin1$p_Med*100
@@ -1310,7 +1311,7 @@ for(cvFold in 1:10){
   ## Make admin1 plots
     # Color limits
     colLimA1 = c(min(direct.est$p_Med,
-                     fixed.model$overD$p_Med,
+                     res.noSpace$est$admin1$p_Med,
                      res.noSpace.cov$est$admin1$p_Med,
                      res.admin1.iid.noCov$est$admin1$p_Med,
                      res.admin1.iid.cov$est$admin1$p_Med,
@@ -1325,7 +1326,7 @@ for(cvFold in 1:10){
                      allLevels.spde$overD$p_Med,
                      allLevels.spdeCov$overD$p_Med),
                  max(direct.est$p_Med,
-                     fixed.model$overD$p_Med,
+                     res.noSpace$est$admin1$p_Med,
                      res.noSpace.cov$est$admin1$p_Med,
                      res.admin1.iid.noCov$est$admin1$p_Med,
                      res.admin1.iid.cov$est$admin1$p_Med,
@@ -1340,7 +1341,7 @@ for(cvFold in 1:10){
                      allLevels.spde$overD$p_Med,
                      allLevels.spdeCov$overD$p_Med))
     colLimA1CV = c(min(direct.est$CV,
-                       fixed.model$overD$CV,
+                       res.noSpace$est$admin1$CV,
                        res.noSpace.cov$est$admin1$CV,
                        res.admin1.iid.noCov$est$admin1$CV,
                        res.admin1.iid.cov$est$admin1$CV,
@@ -1355,7 +1356,7 @@ for(cvFold in 1:10){
                        allLevels.spde$overD$CV,
                        allLevels.spdeCov$overD$CV),
                    max(direct.est$CV,
-                       fixed.model$overD$CV,
+                       res.noSpace$est$admin1$CV,
                        res.noSpace.cov$est$admin1$CV,
                        res.admin1.iid.noCov$est$admin1$CV,
                        res.admin1.iid.cov$est$admin1$CV,
@@ -1384,11 +1385,11 @@ for(cvFold in 1:10){
     
     # Only urban/rural + cluster effect
     plotAreaCol(fName = 'Figures/nig_admin1_MCV1_NoSpace_noCov_MCV1.png', 
-                estVal = fixed.model$overD$p_Med, 
+                estVal = res.noSpace$est$admin1$p_Med, 
                 graph = nigeriaMap_admin1,
                 colLim = colLimA1)
     plotAreaCol(fName = 'Figures/nig_admin1_MCV1_NoSpace-noCov_CV.png', 
-                estVal = fixed.model$overD$CV, 
+                estVal = res.noSpace$est$admin1$CV, 
                 graph = nigeriaMap_admin1,
                 colLim = colLimA1CV,
                 leg = "CV (%)")
@@ -1546,6 +1547,7 @@ for(cvFold in 1:10){
     }
   
   # Compute admin2 CVs
+    res.noSpace$est$admin2$CV = postProcess(res.noSpace$est$admin2[,2:4])
     res.noSpace.cov$est$admin2$CV = postProcess(res.noSpace.cov$est$admin2[,2:4])
     res.admin1.iid.noCov$est$admin2$CV = postProcess(res.admin1.iid.noCov$est$admin2[,2:4])
     res.admin1.iid.cov$est$admin2$CV = postProcess(res.admin1.iid.cov$est$admin2[,2:4])
@@ -1558,7 +1560,8 @@ for(cvFold in 1:10){
     
   ## Admin2   
     # Color limits
-    colLimA2 = c(min(res.noSpace.cov$est$admin2$p_Med,
+    colLimA2 = c(min(res.noSpace$est$admin2$p_Med,
+                     res.noSpace.cov$est$admin2$p_Med,
                      res.admin1.iid.noCov$est$admin2$p_Med,
                      res.admin1.iid.cov$est$admin2$p_Med,
                      res.admin1.bym.noCov$est$admin2$p_Med,
@@ -1567,7 +1570,8 @@ for(cvFold in 1:10){
                      res.admin2.bym.cov$est$admin2$p_Med,
                      allLevels.spde$admin2.overD$p_Med,
                      allLevels.spdeCov$admin2.overD$p_Med),
-                 max(res.noSpace.cov$est$admin2$p_Med,
+                 max(res.noSpace$est$admin2$p_Med,
+                     res.noSpace.cov$est$admin2$p_Med,
                      res.admin1.iid.noCov$est$admin2$p_Med,
                      res.admin1.iid.cov$est$admin2$p_Med,
                      res.admin1.bym.noCov$est$admin2$p_Med,
@@ -1576,7 +1580,8 @@ for(cvFold in 1:10){
                      res.admin2.bym.cov$est$admin2$p_Med,
                      allLevels.spde$admin2.overD$p_Med,
                      allLevels.spdeCov$admin2.overD$p_Med))
-    colLimA2CV = c(min(res.noSpace.cov$est$admin2$CV,
+    colLimA2CV = c(min(res.noSpace$est$admin2$CV,
+                       res.noSpace.cov$est$admin2$CV,
                        res.admin1.iid.noCov$est$admin2$CV,
                        res.admin1.iid.cov$est$admin2$CV,
                        res.admin1.bym.noCov$est$admin2$CV,
@@ -1585,7 +1590,8 @@ for(cvFold in 1:10){
                        res.admin2.bym.cov$est$admin2$CV,
                        allLevels.spde$admin2.overD$CV,
                        allLevels.spdeCov$admin2.overD$CV),
-                   max(res.noSpace.cov$est$admin2$CV,
+                   max(res.noSpace$est$admin2$CV,
+                       res.noSpace.cov$est$admin2$CV,
                        res.admin1.iid.noCov$est$admin2$CV,
                        res.admin1.iid.cov$est$admin2$CV,
                        res.admin1.bym.noCov$est$admin2$CV,
@@ -1595,6 +1601,17 @@ for(cvFold in 1:10){
                        allLevels.spde$admin2.overD$CV,
                        allLevels.spdeCov$admin2.overD$CV))
     colLimA2CV[1] = 0
+    
+    # cluster
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_NoSpace_NoCov_MCV1.png', 
+                estVal = res.noSpace$est$admin2$p_Med, 
+                graph = nigeriaMap,
+                colLim = colLimA2)
+    plotAreaCol(fName = 'Figures/nig_admin2_MCV1_NoSpace_NoCov_CV.png', 
+                estVal = res.noSpace$est$admin2$CV, 
+                graph = nigeriaMap,
+                colLim = colLimA2CV,
+                leg = "CV (%)")
     
     # covariates + cluster
     plotAreaCol(fName = 'Figures/nig_admin2_MCV1_NoSpace_Cov_MCV1.png', 
@@ -1760,7 +1777,7 @@ save(file = "results.RData", direct.est, fixed.model, res.noSpace.cov,
      res.SmoothDirect.iid, res.SmoothDirect.iid.cov, res.SmoothDirect.bym,
      res.SmoothDirect.bym.cov, allLevels.spde, allLevels.spdeCov, 
      nigeriaMap, nigeriaMap_admin1, fixed.holdOut, allLevels.spde.holdOut,
-     allLevels.spdeCov.holdOut)
+     allLevels.spdeCov.holdOut, res.noSpace)
 
 # Summary figures
 transSD = function(muVal, sdVal){
@@ -1786,7 +1803,7 @@ transSD = function(muVal, sdVal){
                                 res.SmoothDirect.iid.cov$res$admin1,
                                 res.SmoothDirect.bym$res$admin1,
                                 res.SmoothDirect.bym.cov$res$admin1,
-                                fixed.model$overD$admin1,
+                                res.noSpace$est$admin1$admin1,
                                 res.noSpace.cov$est$admin1$admin1,
                                 res.admin1.iid.noCov$est$admin1$admin1,
                                 res.admin1.iid.cov$est$admin1$admin1,
@@ -1801,7 +1818,7 @@ transSD = function(muVal, sdVal){
                              res.SmoothDirect.iid.cov$res$p_Med,
                              res.SmoothDirect.bym$res$p_Med,
                              res.SmoothDirect.bym.cov$res$p_Med,
-                             fixed.model$overD$p_Med,
+                             res.noSpace$est$admin1$p_Med,
                              res.noSpace.cov$est$admin1$p_Med,
                              res.admin1.iid.noCov$est$admin1$p_Med,
                              res.admin1.iid.cov$est$admin1$p_Med,
@@ -1816,7 +1833,7 @@ transSD = function(muVal, sdVal){
                             transSD(res.SmoothDirect.iid.cov$res$logitP, res.SmoothDirect.iid.cov$res$sd),
                             transSD(res.SmoothDirect.bym$res$logitP, res.SmoothDirect.bym$res$sd),
                             transSD(res.SmoothDirect.bym.cov$res$logitP, res.SmoothDirect.bym.cov$res$sd),
-                            apply(fixed.model$samples$p.overD, 1, sd),
+                            apply(res.noSpace$est$samples$p, 1, sd),
                             apply(res.noSpace.cov$est$samples$p, 1, sd),
                             apply(res.admin1.iid.noCov$est$samples$p, 1, sd),
                             apply(res.admin1.iid.cov$est$samples$p, 1, sd),
@@ -1838,7 +1855,8 @@ transSD = function(muVal, sdVal){
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
     coord_cartesian(ylim = c(0, 1))
   boxMCV1
-  ggsave("Figures/MCV1_summary.png", plot = boxMCV1)
+  ggsave("Figures/MCV1_summary.png", plot = boxMCV1,
+         width = 16, height = 12, units = "cm")
   
   boxCV = ggplot(data = resDF, aes(x = reorder(Method, -order), y = CV)) + 
     geom_boxplot(aes(fill = reorder(Type, -order))) + 
@@ -1849,15 +1867,18 @@ transSD = function(muVal, sdVal){
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
     coord_trans(y = "log10")
   boxCV
-  ggsave("Figures/CV_summary.png", plot = boxCV)
+  ggsave("Figures/CV_summary.png", plot = boxCV,
+         width = 16, height = 12, units = "cm")
   
 ## Summary of estimates (admin2)
-  resDF = data.frame(Method = rep(c("UL-Cov",
+  resDF = data.frame(Method = rep(c("UL-Int",
+                                    "UL-Cov",
                                     "UL-IID(A1)", "UL-IID(A1)-Cov", "UL-BYM(A1)", "UL-BYM(A1)-Cov",
                                     "UL-BYM(A2)", "UL-BYM(A2)-Cov",
                                     "UL-GRF", "UL-GRF-Cov"), each = 774),
-                     order = rep(9:1, each = 774),
-                     Admin1 = c(res.noSpace.cov$est$admin2$admin2,
+                     order = rep(10:1, each = 774),
+                     Admin1 = c(res.noSpace$est$admin2$admin2,
+                                res.noSpace.cov$est$admin2$admin2,
                                 res.admin1.iid.noCov$est$admin2$admin2,
                                 res.admin1.iid.cov$est$admin2$admin2,
                                 res.admin1.bym.noCov$est$admin2$admin2,
@@ -1866,7 +1887,8 @@ transSD = function(muVal, sdVal){
                                 res.admin2.bym.cov$est$admin2$admin2,
                                 allLevels.spde$admin2.overD$admin2, 
                                 allLevels.spdeCov$admin2.overD$admin2),
-                     MCV1 = c(res.noSpace.cov$est$admin2$p_Med,
+                     MCV1 = c(res.noSpace$est$admin2$p_Med,
+                              res.noSpace.cov$est$admin2$p_Med,
                               res.admin1.iid.noCov$est$admin2$p_Med,
                               res.admin1.iid.cov$est$admin2$p_Med,
                               res.admin1.bym.noCov$est$admin2$p_Med,
@@ -1875,7 +1897,8 @@ transSD = function(muVal, sdVal){
                               res.admin2.bym.cov$est$admin2$p_Med,
                               allLevels.spde$admin2.overD$p_Med, 
                               allLevels.spdeCov$admin2.overD$p_Med),
-                     CV = c(res.noSpace.cov$est$admin2$CV,
+                     CV = c(res.noSpace$est$admin2$CV,
+                            res.noSpace.cov$est$admin2$CV,
                             res.admin1.iid.noCov$est$admin2$CV,
                             res.admin1.iid.cov$est$admin2$CV,
                             res.admin1.bym.noCov$est$admin2$CV,
@@ -1884,7 +1907,7 @@ transSD = function(muVal, sdVal){
                             res.admin2.bym.cov$est$admin2$CV,
                             allLevels.spde$admin2.overD$CV, 
                             allLevels.spdeCov$admin2.overD$CV))
-  resDF$Type = rep(as.factor(c(rep("No spatial effect", 1),rep("Admin1", 4), rep("Admin2", 2),rep("GRF", 2))), each = 774)
+  resDF$Type = rep(as.factor(c(rep("No spatial effect", 2),rep("Admin1", 4), rep("Admin2", 2),rep("GRF", 2))), each = 774)
   
   boxMCV1 = ggplot(data = resDF, aes(x = reorder(Method, -order), y = MCV1)) + 
     geom_boxplot(aes(fill = reorder(Type, -order))) + 
@@ -1895,7 +1918,8 @@ transSD = function(muVal, sdVal){
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
     coord_cartesian(ylim = c(0, 1))
   boxMCV1
-  ggsave("Figures/MCV1_summary.png", plot = boxMCV1)
+  ggsave("Figures/MCV1_summary.png", plot = boxMCV1,
+         width = 16, height = 12, units = "cm")
   
   boxCV = ggplot(data = resDF, aes(x = reorder(Method, -order), y = CV)) + 
     geom_boxplot(aes(fill = reorder(Type, -order))) + 
@@ -1906,7 +1930,8 @@ transSD = function(muVal, sdVal){
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
     coord_trans(y = "log10")
   boxCV
-  ggsave("Figures/CV_summary_admin2.png", plot = boxCV)
+  ggsave("Figures/CV_summary_admin2.png", plot = boxCV,
+         width = 16, height = 12, units = "cm")
 
 ## Summary of hold-out estimates
   resDF.holdOut = data.frame(Method = rep(c("Weighted estimate", 
