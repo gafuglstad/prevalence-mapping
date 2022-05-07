@@ -9,7 +9,7 @@
 
 <h2> Description </h2>
 The paper concerns spatial and spatio-temporal estimation of prevalences in administrative areas. This repository contains
-the code for two case studies: spatial estimation of vaccination coverage in Nigeria in 2018, and spatio-temporal estimation of neonatal mortality rate (NMR) in Malawi in 2000&ndash;2019.
+the code for two case studies: spatial estimation of vaccination coverage in Nigeria in 2018, and spatio-temporal estimation of neonatal mortality rate (NMR) in Malawi in 2000&ndash;2019. The former is part of the current version of the paper, and the latter was part of an earlier part of the paper.
 
 <h2> Case studies </h2>
 <h3> Spatial estimation of vaccination coverage </h3>
